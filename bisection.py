@@ -10,6 +10,9 @@ def bisection(a, b, f, tol, max_ite):
     expr = sympify(f, locals=allowed_locals)
     f_num = lambdify(x, expr, modules="numpy")
     
+    print("|Iteration|  xi  |  f(xi) |  E  |")
+    print("| ",0," | ",ca," | ",f_num(ca)," |   |",)
+
     while True:
         cont = cont + 1
         if f_num(a)*f_num(ca)<0:
@@ -19,7 +22,9 @@ def bisection(a, b, f, tol, max_ite):
             a=ca
             b=b
         c = (b+a)/2
-        if abs(c-ca)<tol:
+        eabs = abs(c-ca)
+        print("| ",cont," | ",ca," | ",f_num(ca)," | ",eabs," |")
+        if eabs<tol:
             print("A: ",a," B: ",b," C: ",c)
             return c
         else:
