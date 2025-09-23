@@ -11,10 +11,15 @@ def multiplicidadRaices(x0,f,f1,f2,tol,max_ite):
     expr = sympify(f2, locals=allowed_locals)
     f2_num = lambdify(x, expr, modules="numpy")
 
+    print("|Iteration|  xi  |  f(xi) |  E  |")
+    print("| ",0," | ",x0," | ",f_num(x0)," |   |",)
+
     while True:
         cont = cont + 1
         x1 = x0-((f_num(x0)*f1_num(x0)/(f1_num(x0)**2-(f_num(x0)*f2_num(x0)))))
 
+        eabs = abs(x1-x0)
+        print("| ",cont," | ",x0," | ",f_num(x0)," | ",eabs," |")
         if abs(x1-x0)<tol:
             print("Raíz: ",x1)
             return 1
