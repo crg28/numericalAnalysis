@@ -1,6 +1,6 @@
 from sympy import symbols, sympify, lambdify
 
-def multiplicidadRaices(x0,f,f1,f2,tol,max_ite):
+def rootsMultiplicity(x0,f,f1,f2,tol,max_ite):
     cont = 0
     x = symbols('x')
     allowed_locals = {"x":x}
@@ -29,4 +29,4 @@ def multiplicidadRaices(x0,f,f1,f2,tol,max_ite):
             print("Limite alcanzado")
             return 0
         
-multRa = multiplicidadRaices(-2.45,"1-sin(x)**2+x+1.85","-sin(2*x)+1","-2*cos(2*x)",10**-7,100)
+multRa = rootsMultiplicity(-2.45,"1-sin(x)**2+x+1.85","-sin(2*x)+1","-2*cos(2*x)",10**-7,100)
