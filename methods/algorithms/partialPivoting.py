@@ -42,7 +42,7 @@ def partial_pivoting(A, n, tol=1e-12):
     print_matrix(A, step=0)
 
     for k in range(n - 1):
-        # --- PARTIAL PIVOTING (It chooses file with the highest number in the column) ---
+        # --- PARTIAL PIVOTING (It chooses row with the highest number in the column) ---
         pivot_row = max(range(k, n), key=lambda i: abs(A[i][k]))
         if abs(A[pivot_row][k]) < tol:
             print(f"Pivot ≈ 0 in column {k}; cannot proceed.")
@@ -51,7 +51,7 @@ def partial_pivoting(A, n, tol=1e-12):
         if pivot_row != k:
             exchange_lines(A, k, pivot_row)
 
-        # --- ELIMINATION UNDER PIVOT ---
+        # --- ELIMINATION UNDER PIVOT NUMBERS---
         for i in range(k + 1, n):
             factor = A[i][k] / A[k][k]
             for j in range(k, n + 1):
