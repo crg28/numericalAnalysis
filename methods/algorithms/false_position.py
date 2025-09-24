@@ -23,7 +23,7 @@ def falsePosition(a,b,f,tol,max_ite):
         eabs = abs(c-ca)
         print("| ",cont," | ",ca," | ",f_num(ca)," | ",eabs," |")
         if abs(c-ca)<tol:
-            print("A: ",a," B: ",b," C: ",c)
+            print("Root: ",c)
             return 1
         else:
             ca=c
