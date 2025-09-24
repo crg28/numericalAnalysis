@@ -21,12 +21,12 @@ def rootsMultiplicity(x0,f,f1,f2,tol,max_ite):
         eabs = abs(x1-x0)
         print("| ",cont," | ",x0," | ",f_num(x0)," | ",eabs," |")
         if abs(x1-x0)<tol:
-            print("Raíz: ",x1)
+            print("Root: ",x1)
             return 1
         else:
             x0 = x1
         if cont == max_ite:
-            print("Limite alcanzado")
+            print("Limit reached")
             return 0
         
 multRa = rootsMultiplicity(-2.45,"1-sin(x)**2+x+1.85","-sin(2*x)+1","-2*cos(2*x)",10**-7,100)
