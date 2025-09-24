@@ -25,7 +25,7 @@ def bisection(a, b, f, tol, max_ite):
         eabs = abs(c-ca)
         print("| ",cont," | ",ca," | ",f_num(ca)," | ",eabs," |")
         if eabs<tol:
-            print("A: ",a," B: ",b," C: ",c)
+            print("Root = ",c)
             return c
         else:
             ca=c
