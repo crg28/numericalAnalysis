@@ -6,11 +6,11 @@ def falsePosition(a,b,f,tol,max_ite):
     expr = sympify(f, locals=allowed_locals)
     f_num = lambdify(x, expr, modules="numpy")
 
-    cont = 0
+    cont = 1
     ca = b-((f_num(b)*(b-a))/(f_num(b)-f_num(a)))
 
     print("|Iteration|  xi  |  f(xi) |  E  |")
-    print("| ",0," | ",ca," | ",f_num(ca)," |   |",)
+    print("| ",1," | ",ca," | ",f_num(ca)," |   |",)
 
     while True:
         cont = cont +1

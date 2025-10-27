@@ -2,7 +2,7 @@ from sympy import symbols, sympify, lambdify
 # Biseccion-Code
 
 def bisection(a, b, f, tol, max_ite):
-    cont = 0
+    cont = 1
     ca = (a+b)/2
 
     x = symbols('x')
@@ -10,8 +10,8 @@ def bisection(a, b, f, tol, max_ite):
     expr = sympify(f, locals=allowed_locals)
     f_num = lambdify(x, expr, modules="numpy")
     
-    print("|Iteration|  xi  |  f(xi) |  E  |")
-    print("| ",0," | ",ca," | ",f_num(ca)," |   |",)
+    print("|Iteration|  a  |  c  |  b  |  f(xi) |  E  |")
+    print("| ",1," | ",a,"  |  ",ca," | ",b,"  |  |",f_num(ca)," |   |",)
 
     while True:
         cont = cont + 1
@@ -19,18 +19,18 @@ def bisection(a, b, f, tol, max_ite):
             a=a
             b=ca
         else:
-            a=ca
-            b=b
+            a=ca 
+            b=b     
         c = (b+a)/2
         eabs = abs(c-ca)
-        print("| ",cont," | ",ca," | ",f_num(ca)," | ",eabs," |")
+        print("| ",cont," | ",a," | ",c," | ",b," | ",f_num(c)," | ",eabs," |")
         if eabs<tol:
             print("Root = ",c)
             return c
-        else:
-            ca=c
         if cont == max_ite:
             return "Limit reached"
+        ca=c
+           
 
 bisec = bisection(-0.5,1,"x**2-x+1-E**x+99/200",0.000001,100)
 print(bisec)
