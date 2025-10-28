@@ -1,0 +1,111 @@
+{% load static i18n %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Analysis{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS principal del sitio -->
+  <link href="{% static 'css/main.css' %}?v=3" rel="stylesheet">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div id="page">
+    <header class="bb-header">
+      <div class="bb-header-inner">
+        <!-- Logo (clic = inicio) -->
+        <a class="bb-logo" href="{% url 'methods:home' %}">
+          <img src="{% static 'img/logo1SinFondo.png' %}" alt="Analysis">
+        </a>
+
+        <!-- Categorías -->
+        <div class="bb-categories">
+          <button class="bb-cat-btn" type="button">
+            {% trans "categories" %} <span class="bb-caret">▾</span>
+          </button>
+          <div class="bb-cat-menu">
+            {% for category in categories %}
+              <a href="{% url 'methods:category' category.slug %}">
+                {{ category.name }}
+              </a>
+            {% empty %}
+              <span>{% trans "there isn't available categories" %}</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Buscador -->
+        <form class="bb-search" action="{% url 'methods:search_products' %}" method="get">
+          <span class="bb-search-icon">🔍</span>
+          <input name="q" type="search" placeholder="{% trans 'Search methods...' %}" aria-label="{% trans 'Search' %}">
+          <button type="button" class="bb-search-clear" aria-label="{% trans 'clean' %}">✕</button>
+        </form>
+
+        <!-- Acciones -->
+        <div class="bb-actions">
+          {% if user.is_authenticated %}
+            {% if user.is_staff %}
+              <a class="btn btn-outline sm" href="{% url 'admin:index' %}">Admin</a>
+            {% endif %}
+            <a class="btn btn-primary sm" href="{% url 'logout' %}">Log out</a>
+          {% else %}
+            <a class="btn btn-outline sm" href="{% url 'login' %}">Log in</a>
+            <a class="btn btn-primary sm" href="{% url 'signup' %}">Sign up</a>
+          {% endif %}
+        </div>
+      </div> <!-- /bb-header-inner -->
+    </header>
+
+    <main id="content" class="bb-main">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bb-footer" role="contentinfo">
+      <div class="bb-footer-bar bb-pink"></div>
+      <div class="bb-footer-bar bb-lime"></div>
+      <small>© Analysis</small>
+    </footer>
+  </div>
+
+  <!-- ======= UI header scripts ======= -->
+  <script>
+    // Toggle categorías
+    (function () {
+      const catBtn = document.querySelector('.bb-cat-btn');
+      const catMenu = document.querySelector('.bb-cat-menu');
+      if (!catBtn || !catMenu) return;
+      catBtn.addEventListener('click', () => catMenu.classList.toggle('open'));
+      document.addEventListener('click', (e) => {
+        if (!catBtn.contains(e.target) && !catMenu.contains(e.target)) {
+          catMenu.classList.remove('open');
+        }
+      });
+    })();
+
+    // Limpiar búsqueda
+    (function () {
+      const clearBtn = document.querySelector('.bb-search-clear');
+      const input = document.querySelector('.bb-search input');
+      if (!clearBtn || !input) return;
+      clearBtn.addEventListener('click', () => { input.value=''; input.focus(); });
+    })();
+  </script>
+
+  <!-- ======= Librerías para barra de ecuaciones + graficador ======= -->
+  <!-- MathJax (LaTeX preview) -->
+  <script async id="MathJax-script"
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <!-- math.js (evaluación de funciones) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
+
+  <!-- Plotly (graficador) -->
+  <script defer src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <!-- JS reutilizable del proyecto para métodos (historial, preview, plot) -->
+  <script defer src="{% static 'js/method_ui.js' %}"></script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

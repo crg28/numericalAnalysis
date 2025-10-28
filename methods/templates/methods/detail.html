@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{{ method.name }}{% endblock %}
+{% block content %}
+<article class="method-detail">
+  <h1>{{ method.name }}</h1>
+  {% if method.image %}<img class="hero" src="{{ method.image.url }}" alt="{{ method.name }}">{% endif %}
+  <p>{{ method.description }}</p>
+  <a class="btn-comprar" href="{% url 'methods:list' %}">{% trans "Back" %}</a>
+</article>
+{% endblock %}

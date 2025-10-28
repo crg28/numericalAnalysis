@@ -1,0 +1,51 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{{ method.name }}{% endblock %}
+
+{% block content %}
+<h1>{{ method.name }}</h1>
+
+<div class="method-run">
+  <section class="method-card">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn btn-primary" type="submit">Solve system</button>
+    </form>
+
+    {% if steps %}
+      <div class="note" style="margin-top:16px;">
+        <h4>Elimination steps</h4>
+        <table>
+          <thead><tr><th>Operation</th><th>A</th><th>b</th></tr></thead>
+          <tbody>
+            {% for s in steps %}
+              <tr><td>{{ s.op }}</td><td><pre>{{ s.A }}</pre></td><td><pre>{{ s.b }}</pre></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% if solution %}
+      <div class="note" style="margin-top:12px;">
+        <h4>Solution</h4>
+        <p>x = {{ solution }}</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <aside class="right-panel method-card">
+    <h3>About this method</h3>
+    <p>
+      {% if method.kind == 'pivot_partial' %}Gaussian elimination with <b>row</b> swaps to choose the largest pivot in each column.{% endif %}
+      {% if method.kind == 'pivot_total' %}Gaussian elimination with <b>row and column</b> swaps to choose the largest pivot in the active submatrix.{% endif %}
+    </p>
+    <h4>Recommendations & warnings</h4>
+    <ul>
+      <li>Use pivoting to reduce numerical instability.</li>
+      <li>Watch for singular or nearly-singular matrices (det ≈ 0).</li>
+      <li>Scaling rows/columns may improve accuracy.</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}

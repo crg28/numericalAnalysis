@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}Analysis{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/index.css' %}">
+{% endblock %}
+
+{% block content %}
+  <h1>Welcome to Numerical Analysis</h1>
+
+  <h2>Methods</h2>
+
+  <div class="methods-grid featured">
+    {% for method in featured_methods %}
+      <a href="{% url 'methods:detail' method.slug %}" class="method-link">
+        <div class="product-card small">
+          {% if method.image %}
+            <img src="{{ method.image.url }}" alt="{{ method.name }}">
+          {% else %}
+            <img src="{% static 'img/placeholder.png' %}" alt="No image">
+          {% endif %}
+          <h3>{{ method.name }}</h3>
+          {% firstof method.description method.descripcion as desc %}
+          <p>{{ desc|default:"No description"|truncatewords:14 }}</p>
+        </div>
+      </a>
+    {% empty %}
+      <p>No featured methods yet.</p>
+    {% endfor %}
+  </div>
+
+  <a href="{% url 'methods:list' %}">
+  <a href="{% url 'methods:list' %}" class="btn btn-primary lg">See more</a>
+  </a>
+{% endblock %}

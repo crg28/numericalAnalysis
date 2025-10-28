@@ -1,0 +1,162 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{{ method.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/index.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ method.name }}</h1>
+
+<div class="method-run">
+  <!-- Left: inputs + results -->
+  <section class="method-card">
+    <h3>Equation</h3>
+
+    <!-- Eq bar for f(x) -->
+    <div id="eq_f" class="eq-section">
+      <div class="eq-bar">
+        <input class="eq-input" id="fx" type="text" placeholder="e.g. sin(x) - x/2">
+        <div class="eq-actions">
+          <select class="eq-history" title="History"></select>
+          <button class="btn btn-outline sm btn-save" type="button">Save</button>
+          <button class="btn btn-outline sm btn-graph" type="button">Graph</button>
+          <button class="btn btn-outline sm btn-clear" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="preview"></div>
+    </div>
+
+    {% if method.kind == 'fixed_point' %}
+    <!-- Eq bar for g(x) -->
+    <h3 style="margin-top:16px">Iteration function g(x)</h3>
+    <div id="eq_g" class="eq-section">
+      <div class="eq-bar">
+        <input class="eq-input" id="gx" type="text" placeholder="e.g. (sin(x)+x)/2">
+        <div class="eq-actions">
+          <select class="eq-history" title="History"></select>
+          <button class="btn btn-outline sm btn-save" type="button">Save</button>
+          <button class="btn btn-outline sm btn-clear" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="preview"></div>
+    </div>
+    {% endif %}
+
+    <!-- Django form (tol, iter, a/b/x0/x1…) -->
+    <form method="post" style="margin-top:16px">
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+        {{ form.as_p }}
+      </div>
+      <!-- Sincroniza campos de texto con la barra bonita -->
+      <input type="hidden" name="funcion" id="hidden_fx">
+      {% if method.kind == 'fixed_point' %}
+      <input type="hidden" name="gfuncion" id="hidden_gx">
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Run {{ method.name }}</button>
+    </form>
+
+    {% if error %}<div class="note" style="margin-top:10px;color:#c0362c;">{{ error }}</div>{% endif %}
+
+    {% if root is not None %}
+      <div class="note" style="margin-top:16px;">
+        <h4>Result</h4>
+        <p><b>Approx. root:</b> {{ root }}{% if error %}, <b>error</b>: {{ error }}{% endif %}</p>
+      </div>
+    {% endif %}
+
+    {% if iters %}
+      <div class="note" style="margin-top:12px;">
+        <h4>Iterations</h4>
+        <div style="overflow:auto">
+          <table>
+            <thead><tr>{% for k,v in iters.0.items %}<th>{{ k }}</th>{% endfor %}</tr></thead>
+            <tbody>
+              {% for row in iters %}
+                <tr>{% for k,v in row.items %}<td>{{ v }}</td>{% endfor %}</tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Right: graph + info -->
+  <aside class="right-panel method-card">
+    <h3>Grapher</h3>
+    <div id="plot" class="plot"></div>
+
+    <div class="note" style="margin-top:16px;">
+      <h4>What is this method for?</h4>
+      <p>
+        {% if method.kind == 'bisection' %}Find a root by repeatedly bisecting an interval where f(x) changes sign.{% endif %}
+        {% if method.kind == 'newton' %}Root-finding using the tangent line; requires f′(x).{% endif %}
+        {% if method.kind == 'secant' %}Derivative-free root-finding using two previous points.{% endif %}
+        {% if method.kind == 'fixed_point' %}Solve x = g(x) by iteration; converges if |g′(x*)| < 1 near the fixed point.{% endif %}
+      </p>
+      <h4>Recommendations & warnings</h4>
+      <ul>
+        {% if method.kind == 'bisection' %}
+          <li>Require f(a)·f(b) &lt; 0.</li>
+          <li>Converges linearly; robust but slower.</li>
+        {% endif %}
+        {% if method.kind == 'newton' %}
+          <li>Pick x₀ near the root; may diverge otherwise.</li>
+          <li>Need derivative continuity near the root.</li>
+        {% endif %}
+        {% if method.kind == 'secant' %}
+          <li>Requires two starting points x₀, x₁.</li>
+          <li>Superlinear order ≈ 1.618; can fail if slope ≈ 0.</li>
+        {% endif %}
+        {% if method.kind == 'fixed_point' %}
+          <li>Choose g(x) such that |g′(x*)| &lt; 1.</li>
+          <li>Provide a good initial guess x₀.</li>
+        {% endif %}
+      </ul>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/method_ui.js' %}"></script>
+<script>
+  // Inicializar barras con historial por método (usa slug para la llave)
+  const slug = "{{ method.slug }}";
+  const barF = NA_UI.initEqBar({
+    rootId: 'eq_f',
+    storageKey: 'na_hist_f_' + slug,
+    onGraph: (fx)=> NA_UI.graphFx('plot', fx)
+  });
+
+  // Precargar desde el form de Django (si viene de un POST previo)
+  const hiddenFx = document.getElementById('hidden_fx');
+  const origFx = document.getElementById('id_funcion');
+  if (origFx) { barF.set(origFx.value || ''); }
+
+  {% if method.kind == 'fixed_point' %}
+    const barG = NA_UI.initEqBar({
+      rootId: 'eq_g',
+      storageKey: 'na_hist_g_' + slug
+    });
+    const hiddenGx = document.getElementById('hidden_gx');
+    const origGx = document.getElementById('id_gfuncion');
+    if (origGx) { barG.set(origGx.value || ''); }
+  {% endif %}
+
+  // Antes de enviar, sincroniza inputs bonitos -> campos del form
+  const form = document.querySelector('form[method="post"]');
+  form.addEventListener('submit', ()=>{
+    if (hiddenFx) hiddenFx.value = barF.get();
+    const idFx = document.getElementById('id_funcion');
+    if (idFx) idFx.value = barF.get();
+    {% if method.kind == 'fixed_point' %}
+      if (hiddenGx) hiddenGx.value = barG.get();
+      const idG = document.getElementById('id_gfuncion');
+      if (idG) idG.value = barG.get();
+    {% endif %}
+  });
+</script>
+{% endblock %}

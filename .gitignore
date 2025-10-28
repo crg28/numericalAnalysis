@@ -1,18 +1,25 @@
+# Entornos y editor
 env/
-.venv/
+venv/
+.idea/
+.vscode/
+
+# Compilados / caché
 __pycache__/
-*.py[cod]
-db.sqlite3
-*.sqlite3
-.DS_Store
+*.pyc
+
+
+
+# Archivos de i18n compilados (se regeneran)
+*.mo
+
+# Archivos generados / build
 staticfiles/
-.env
-env/
-.venv/
-db.sqlite3
-*.sqlite3
-__pycache__/
-*.py[cod]
+media/
+*.log
+
+# Node / otros
+node_modules/
+
+# Sistemas
 .DS_Store
-staticfiles/
-.env

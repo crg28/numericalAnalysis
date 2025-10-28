@@ -114,8 +114,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"  # para collectstatic en prod
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# === STATIC & MEDIA ===
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'methods' / 'static']  # usamos la carpeta static de tu app
+STATIC_ROOT = BASE_DIR / 'staticfiles'                # para collectstatic (producción)
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'methods:home'
+LOGOUT_REDIRECT_URL = 'methods:home'

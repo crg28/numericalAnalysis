@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load i18n static %}
+{% block title %}{% trans "All methods" %}{% endblock %}
+{% block content %}
+<h1>{% trans "All methods" %}</h1>
+<div class="methods-grid">
+  {% for m in methods %}
+  <a class="method-link" href="{% url 'methods:detail' m.slug %}">
+    <div class="product-card small">
+      {% if m.image %}<img src="{{ m.image.url }}" alt="{{ m.name }}">{% else %}
+      <img src="{% static 'img/placeholder.png' %}" alt="">
+      {% endif %}
+      <h3>{{ m.name }}</h3>
+      <p>{{ m.description|truncatewords:16 }}</p>
+    </div>
+  </a>
+  {% empty %}
+    <p>{% trans "No methods found." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}
