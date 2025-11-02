@@ -3,6 +3,7 @@ env/
 venv/
 .idea/
 .vscode/
+.venv
 
 # Compilados / caché
 __pycache__/
