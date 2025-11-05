@@ -1,121 +1,111 @@
-def exchange_lines(A, r1, r2):
-    """Swap rows r1 <-> r2 (in place)."""
+# === Gaussian Elimination with Total Pivoting ===
+# Output format follows your required example.
+
+def exchange_rows(A, r1, r2):
+    """Swap rows r1 <-> r2 in the augmented matrix."""
     if r1 != r2:
         A[r1], A[r2] = A[r2], A[r1]
 
 def exchange_columns(A, c1, c2):
-    """Swap columns c1 <-> c2 (in place) in an augmented matrix."""
+    """Swap columns c1 <-> c2 (in the coefficient part, not the last column b)."""
     if c1 != c2:
         n = len(A)
         for i in range(n):
             A[i][c1], A[i][c2] = A[i][c2], A[i][c1]
 
-def read_augmented_matrix():
-    n = int(input("Enter the number of unknowns: "))
-    print(f"Enter the augmented matrix row by row (each row with {n+1} values separated by spaces):")
-    A = []
-    for i in range(n):
-        row = list(map(float, input(f"Row {i+1}: ").split()))
-        if len(row) != n + 1:
-            print(f"Error: expected {n+1} values, but got {len(row)}.")
-            return None, None
-        A.append(row)
-    return A, n
-
 def print_matrix(A, step):
-    print(f"\nStep {step}:")
+    print(f"\nStep {step}\n")
     for row in A:
-        for number in row:
-            print(number, " ", end = ' ')
-        print("")
+        print(" ".join(f"{v: .6f}" for v in row))
 
 def back_substitution(U_aug, n, tol=1e-12):
-    """
-    U_aug is upper-triangular augmented matrix (n x (n+1)).
-    Returns x aligned to the CURRENT column order (after any column swaps).
-    """
-    x = [0.0] * n
-    for i in range(n - 1, -1, -1):
+    """Backward substitution on upper triangular augmented matrix."""
+    x = [0.0]*n
+    for i in range(n-1, -1, -1):
         piv = U_aug[i][i]
         if abs(piv) < tol:
-            print(f"Division by zero in back substitution at position ({i},{i}).")
-            return None
-        s = sum(U_aug[i][j] * x[j] for j in range(i + 1, n))
-        x[i] = (U_aug[i][n] - s) / piv
+            raise ZeroDivisionError(f"Pivot ~ 0 at position ({i},{i})")
+        s = 0.0
+        for j in range(i+1, n):
+            s += U_aug[i][j]*x[j]
+        x[i] = (U_aug[i][n] - s)/piv
     return x
 
 def total_pivoting(A, n, tol=1e-16):
     """
-    Gaussian elimination with TOTAL PIVOTING on an augmented matrix A (n x (n+1)).
-    Returns (U_aug, perm) where:
-      - U_aug is upper-triangular augmented matrix after elimination,
-      - perm is the column permutation mapping (size n):
-            column j currently corresponds to original variable index perm[j].
+    Gaussian elimination with TOTAL PIVOTING on augmented matrix A (n x (n+1)).
+    Returns (U_aug, perm) where perm maps current column -> original variable index.
     """
-    # Permutation vector of columns: initially identity
-    perm = list(range(n))
+    perm = list(range(n))  # identity permutation
 
-    # Initial state
+    print("Gaussian elimination with total pivoting\n\nResults:")
     print_matrix(A, step=0)
 
-    for k in range(n - 1):
-        # 1) Looking for maximum in submatrix A[k:n, k:n]
-        max_val = 0.0
-        p = k
-        q = k
+    for k in range(n-1):
+        # Find maximum in submatrix A[k:n, k:n]
+        max_val, p, q = 0.0, k, k
         for i in range(k, n):
             for j in range(k, n):
                 val = abs(A[i][j])
                 if val > max_val:
-                    max_val = val
-                    p, q = i, j
+                    max_val, p, q = val, i, j
 
-        # 2) Checking singularity / pivot ~ 0
         if max_val < tol:
-            print(f"All candidates ≈ 0 in submatrix [{k}:, {k}:]. System may be singular.")
-            return None, None
+            raise ValueError(f"Submatrix {k} is singular or nearly singular.")
 
-        # 3) Exchange row and columns and update perm
+        # Swap rows and columns
         if p != k:
-            exchange_lines(A, k, p)
+            exchange_rows(A, k, p)
         if q != k:
             exchange_columns(A, k, q)
-            # Updating perm: before variable in k, now is in q and viceverse
             perm[k], perm[q] = perm[q], perm[k]
 
-        # 4) Deleting under pivot
+        # Elimination
         piv = A[k][k]
+        for i in range(k+1, n):
+            factor = A[i][k]/piv
+            for j in range(k, n+1):
+                A[i][j] -= factor*A[k][j]
 
-        for i in range(k + 1, n):
-            factor = A[i][k] / piv
-            for j in range(k, n + 1): 
-                A[i][j] -= factor * A[k][j]
-
-        # Print
-        print_matrix(A, step=k + 1)
+        print_matrix(A, step=k+1)
 
     return A, perm
 
+def read_system():
+    """Read n, then A (n x n) and b (n), and build the augmented matrix."""
+    n = int(input("Enter n (system size): ").strip())
+    print(f"Enter matrix A ({n}x{n}), one row per line (values separated by spaces):")
+    Acoef = []
+    for i in range(n):
+        row = list(map(float, input(f"Row {i+1}: ").split()))
+        if len(row) != n:
+            raise ValueError(f"Expected {n} values in row {i+1}.")
+        Acoef.append(row)
+    print("Enter vector b (n values separated by spaces):")
+    b = list(map(float, input("b: ").split()))
+    if len(b) != n:
+        raise ValueError(f"Expected {n} values in b.")
+    # Build augmented matrix
+    Aaug = [Acoef[i] + [b[i]] for i in range(n)]
+    return Aaug, n
+
 def main():
-    A, n = read_augmented_matrix()
-    if A is None:
-        return
+    try:
+        Aaug, n = read_system()
+        U_aug, perm = total_pivoting(Aaug, n)
+        x_perm = back_substitution(U_aug, n)
 
-    U_aug, perm = total_pivoting(A, n)
-    if U_aug is None:
-        return
-    
-    x_perm = back_substitution(U_aug, n)
-    if x_perm is None:
-        return
+        # Return to original variable order
+        x_final = [0.0]*n
+        for j in range(n):
+            x_final[perm[j]] = x_perm[j]
 
-    # Using perm to return to original order
-    x_final = [0.0] * n
-    for j in range(n):
-        x_final[perm[j]] = x_perm[j]
+        print("\n\nAfter applying back substitution\n")
+        print("x:")
+        for xi in x_final:
+            print(f"{xi:.6f}")
+    except Exception as e:
+        print(f"Error: {e}")
 
-    print("\nSolutions of the system (original variable order):")
-    for idx, val in enumerate(x_final, start=1):
-        print(f"x{idx} = {val:.4f}")
-
-main()
+if __name__ == "__main__":
+    main()
