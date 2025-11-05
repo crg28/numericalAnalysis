@@ -40,6 +40,6 @@ def vandermonde(x, y, x_real=None, y_real=None):
     print(f"Polinomio: {pol}")
 
 
-x = [-1,0,3,4]
-y = [15.5,3,8,1]
-vandermonde(x,y)
+#x = [-1,0,3,4]
+#y = [15.5,3,8,1]
+#vandermonde(x,y)
