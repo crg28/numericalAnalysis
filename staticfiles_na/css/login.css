@@ -1,0 +1,60 @@
+/* Auth - Log in (compact) */
+:root{ --pink: var(--pink, #e4483a); }
+
+.form-container.small {
+  max-width: 420px;
+  margin: 72px auto;
+  padding: 28px;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 10px 28px rgba(0,0,0,.08);
+}
+
+.form-container.small h1{
+  font-size:28px; font-weight:800; margin:0 0 10px 0;
+}
+.form-subtitle{ color:#777; margin:0 0 22px 0; }
+
+.form-group{ margin-bottom:14px; }
+.form-group label{ display:block; font-size:13px; margin-bottom:6px; color:#333; }
+.form-group input{
+  width:100%; padding:10px 12px; font-size:14px;
+  border:1px solid #d9d9d9; border-radius:12px; outline:none;
+  transition: border .15s, box-shadow .15s; background:#fff;
+}
+.form-group input:focus{
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(228,72,58,.15);
+}
+
+.errorlist{ margin:6px 0 0; padding:0; list-style:none; color:#c0362c; font-size:12px; }
+
+.btn-submit {
+  background: var(--pink, #e4483a);  /* rojo principal */
+  color: #fff;                       /* texto blanco */
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 30px;
+  border-radius: 999px;              /* redondo y moderno */
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(228, 72, 58, 0.25); /* leve sombra */
+}
+
+/* Hover brillante */
+.btn-submit:hover {
+  background: #c7362e;               /* rojo más oscuro */
+  box-shadow: 0 6px 20px rgba(228, 72, 58, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Click (efecto presión) */
+.btn-submit:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(228, 72, 58, 0.25);
+}
+
+.no-account{ margin-top:16px; color:#333; font-size:14px; }
+.no-account a{ color: var(--pink); text-decoration:none; font-weight:700; }
+.no-account a:hover{ text-decoration:underline; }

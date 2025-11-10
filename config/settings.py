@@ -115,13 +115,17 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 # === STATIC & MEDIA ===
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'methods' / 'static']  # usamos la carpeta static de tu app
-STATIC_ROOT = BASE_DIR / 'staticfiles'                # para collectstatic (producción)
+# Numerical Analysis settings.py
+STATIC_URL = '/na-static/'
+STATICFILES_DIRS = [BASE_DIR / 'methods' / 'static']  # tu carpeta de desarrollo
+STATIC_ROOT = BASE_DIR / 'staticfiles_na'             # carpeta de compilación
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Cache busting (opcional pero MUY recomendado)
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'methods:home'
