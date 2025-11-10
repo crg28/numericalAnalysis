@@ -1,9 +1,8 @@
-# cholesky.py
+# doolittle.py
 import numpy as np
 
 # ---------- Pretty Printers ----------
 def fmt(x: complex) -> str:
-    """Format complex numbers a + bi, rounding tiny imaginary/real parts."""
     if abs(x.imag) < 1e-12:
         return f"{x.real: .6f}"
     if abs(x.real) < 1e-12:
@@ -18,7 +17,6 @@ def print_matrix(M: np.ndarray, name: str | None = None) -> None:
 
 # ---------- Solvers ----------
 def forward_sub(L: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Solve L y = b (L lower-triangular, not necessarily unit)."""
     n = len(b)
     y = np.zeros(n, dtype=np.complex128)
     for i in range(n):
@@ -27,7 +25,6 @@ def forward_sub(L: np.ndarray, b: np.ndarray) -> np.ndarray:
     return y
 
 def back_sub(U: np.ndarray, y: np.ndarray) -> np.ndarray:
-    """Solve U x = y (U upper-triangular, not necessarily unit)."""
     n = len(y)
     x = np.zeros(n, dtype=np.complex128)
     for i in range(n - 1, -1, -1):
@@ -35,42 +32,33 @@ def back_sub(U: np.ndarray, y: np.ndarray) -> np.ndarray:
         x[i] = (y[i] - s) / U[i, i]
     return x
 
-# ---------- Cholesky-like LU ----------
-def cholesky_like(A: np.ndarray):
+# ---------- Doolittle (diag(L) = 1), staged printing ----------
+def doolittle_lu(A: np.ndarray):
     """
-    Cholesky-like LU factorization:
-        A = L * U  with  L[k,k] = U[k,k] = sqrt(A_k,k)  (complex allowed).
-    NOTE: We initialize L and U as identities so that (like your reference tables)
-    the not-yet-updated diagonal entries show as 1.000000 at early stages.
+    Doolittle LU: A = L * U with diag(L) = 1.
+    No pivoting (to match target stage values).
+    We initialize:
+      - L as identity so untouched diagonal entries stay 1.000000
+      - U as identity so untouched U-diagonal also prints 1.000000 until updated
     """
     A = np.array(A, dtype=np.complex128)
     n = A.shape[0]
-    L = np.eye(n, dtype=np.complex128)  # <-- identity so untouched diagonals print as 1
+    L = np.eye(n, dtype=np.complex128)
     U = np.eye(n, dtype=np.complex128)
 
     for k in range(n):
-        Lkk = np.sqrt(A[k, k])
-        L[k, k] = Lkk
-        U[k, k] = Lkk
-
-        # fill row k of U (to the right of the diagonal)
-        for j in range(k + 1, n):
-            U[k, j] = A[k, j] / Lkk
-
-        # fill column k of L (below the diagonal)
+        # Row k of U (including diagonal)
+        for j in range(k, n):
+            U[k, j] = A[k, j] - sum(L[k, p] * U[p, j] for p in range(k))
+        # L[k,k] already 1.0
+        # Column k of L (below diagonal)
         for i in range(k + 1, n):
-            L[i, k] = A[i, k] / Lkk
-
-        # Schur complement update of the trailing submatrix
-        for i in range(k + 1, n):
-            for j in range(k + 1, n):
-                A[i, j] -= L[i, k] * U[k, j]
+            L[i, k] = (A[i, k] - sum(L[i, p] * U[p, k] for p in range(k))) / U[k, k]
 
     return L, U
 
-# ---------- Full staged demo ----------
-def cholesky_demo(A: np.ndarray, b: np.ndarray) -> None:
-    print("Cholesky\n")
+def doolittle_demo(A: np.ndarray, b: np.ndarray) -> None:
+    print("Doolittle\n")
     print("Results:\n")
 
     print("Stage 0\n")
@@ -78,23 +66,17 @@ def cholesky_demo(A: np.ndarray, b: np.ndarray) -> None:
         print(" " + "  ".join(f"{v: .6f}" for v in row))
     print()
 
+    # staged factorization for display
     Awork = np.array(A, dtype=np.complex128)
     n = Awork.shape[0]
-    L = np.eye(n, dtype=np.complex128)  # identity so untouched diagonals print as 1
-    U = np.eye(n, dtype=np.complex128)
+    L = np.eye(n, dtype=np.complex128)  # diag(L)=1 visible from the start
+    U = np.eye(n, dtype=np.complex128)  # keeps 1's on U diag until computed
 
     for k in range(n):
-        Lkk = np.sqrt(Awork[k, k])
-        L[k, k] = Lkk
-        U[k, k] = Lkk
-
-        for j in range(k + 1, n):
-            U[k, j] = Awork[k, j] / Lkk
+        for j in range(k, n):
+            U[k, j] = Awork[k, j] - sum(L[k, p] * U[p, j] for p in range(k))
         for i in range(k + 1, n):
-            L[i, k] = Awork[i, k] / Lkk
-        for i in range(k + 1, n):
-            for j in range(k + 1, n):
-                Awork[i, j] -= L[i, k] * U[k, j]
+            L[i, k] = (Awork[i, k] - sum(L[i, p] * U[p, k] for p in range(k))) / U[k, k]
 
         print(f"Stage {k+1}\n")
         print_matrix(L, "L")
@@ -102,7 +84,7 @@ def cholesky_demo(A: np.ndarray, b: np.ndarray) -> None:
         print_matrix(U, "U")
         print()
 
-    # Solve A x = b via L U
+    # Solve A x = b via LU
     y = forward_sub(L, b.astype(np.complex128))
     x = back_sub(U, y)
 
@@ -112,7 +94,7 @@ def cholesky_demo(A: np.ndarray, b: np.ndarray) -> None:
         print(f"{xi.real:.6f}")
     print("\n____________________________________________________________________________")
 
-# ---------- Run with the provided data ----------
+# ---------- Run with your provided data ----------
 if __name__ == "__main__":
     A = np.array([
         [4,  -1,   0,  3],
@@ -121,4 +103,4 @@ if __name__ == "__main__":
         [14,  5,   -2, 30]
     ], dtype=float)
     b = np.array([1, 1, 1, 1], dtype=float)
-    cholesky_demo(A, b)
+    doolittle_demo(A, b)

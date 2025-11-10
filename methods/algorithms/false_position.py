@@ -1,41 +1,56 @@
 from sympy import symbols, sympify, lambdify, sin, log
 import numpy as np
 
-def falsePosition(a, b, f, tol, max_ite):
+def false_position(a, b, f_str, tol=1e-7, max_iter=100, stop_on_residual=False, residual_tol=1e-12):
+    """
+    False Position (Regula Falsi).
+    Prints: iter | a | xm | b | f(xm) | E
+    Stops by default ONLY when step error E = |x_n - x_{n-1}| < tol.
+    If stop_on_residual=True, it will also stop when |f(xm)| < residual_tol.
+    """
     x = symbols('x')
-    # le decimos a sympify qué funciones puede usar
-    allowed_locals = {"x": x, "sin": sin, "log": log}
-    expr = sympify(f, locals=allowed_locals)
-    # ahora sí lo convertimos a función numérica con numpy
-    f_num = lambdify(x, expr, modules="numpy")
+    allowed = {"x": x, "sin": sin, "log": log, "ln": log}
+    expr = sympify(f_str, locals=allowed)
+    f = lambdify(x, expr, modules="numpy")
 
-    cont = 1
-    ca = b - (f_num(b) * (b - a)) / (f_num(b) - f_num(a))
+    fa, fb = float(f(a)), float(f(b))
+    if np.sign(fa) * np.sign(fb) >= 0:
+        raise ValueError("The interval [a, b] does not bracket a root (f(a)*f(b) >= 0).")
 
-    print("|Iteration|    xi     |   f(xi)   |     E     |")
-    print("| ", 1, " | ", ca, " | ", f_num(ca), " |   |")
+    print("False position\n")
+    print("Results table:\n")
+    print("| iter|          a |          xm |           b |     f(xm) |           E |")
 
-    while cont < max_ite:
-        cont += 1
-        c = ca
+    c_prev = None
+    for k in range(1, max_iter + 1):
+        fa, fb = float(f(a)), float(f(b))
+        c = b - fb * (b - a) / (fb - fa)
+        fc = float(f(c))
 
-        # actualización correcta del intervalo
-        if f_num(a) * f_num(c) < 0:
+        # step error
+        E = "" if c_prev is None else f"{abs(c - c_prev):.1e}"
+        print(f"| {k:>4d}| {a: .10f} | {c: .10f} | {b: .10f} | {fc: .1e} | {E:>11} |")
+
+        # stop criteria
+        if c_prev is not None and abs(c - c_prev) < tol:
+            print(f"\nAn approximation of the root was found at {c:.12f}")
+            return c
+        if stop_on_residual and abs(fc) < residual_tol:
+            print(f"\nAn approximation of the root was found at {c:.12f}")
+            return c
+
+        # update bracket
+        if fa * fc < 0:
             b = c
         else:
             a = c
 
-        c = b - (f_num(b) * (b - a)) / (f_num(b) - f_num(a))
-        eabs = abs(c - ca)
-        print("| ", cont, " | ", c, " | ", f_num(c), " | ", eabs, " |")
+        c_prev = c
 
-        if eabs < tol:
-            print("Root:", c)
-            return c
-
-        ca = c
-
-    print("Limit reached")
+    print("\nMaximum number of iterations reached.")
     return None
 
-reg_f = falsePosition(0, 1, "log(sin(x)**2 + 1) - 0.5", 1e-7, 100)
+
+# Test case (matches your sheet: should print 5 rows)
+if __name__ == "__main__":
+    false_position(0, 1, "ln(sin(x)**2 + 1) - 1/2", tol=1e-7, max_iter=100)

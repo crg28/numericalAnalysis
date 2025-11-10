@@ -1,58 +1,63 @@
+# lagrange.py
 import numpy as np
-# Asumimos que esta función existe y formatea un array de 
-# coeficientes en un string legible, como en tu ejemplo.
-from vandermonde import imprimir_polinomio
 
-def lagrange(x, y, x_real=None, y_real=None):
-    n = len(x) # Número de puntos
+def poly_line_full(coeffs):
+    """
+    Build a polynomial line from highest to lowest degree (always 4 terms for n=4),
+    keeping signs (+/-) and printing signed zeros like -0.000000.
+    Example: -0.050000x^3+0.350000x^2-0.600000x-0.000000
+    """
+    n = len(coeffs)
+    parts = []
+    for i, c in enumerate(coeffs):
+        exp = n - 1 - i
+        # round to 6 decimals but preserve the sign (including -0.000000)
+        c = float(np.round(c, 6))
+        s = f"{c:+.6f}"  # includes a leading sign
+        if exp == 0:
+            term = f"{s}"
+        elif exp == 1:
+            term = f"{s}x"
+        else:
+            term = f"{s}x^{exp}"
+        parts.append(term)
+    line = "".join(parts)
+    # Remove the leading '+' if the first coefficient is positive
+    return line if not line.startswith("+") else line[1:]
 
-    # L_i(x) puros (sin y_i)
-    L_tabla = np.zeros((n, n))
-    
-    # polinomio final simplificado
-    pol_final_coeffs = np.zeros(n) 
+def lagrange(x, y):
+    x = np.array(x, dtype=float)
+    y = np.array(y, dtype=float)
+    n = len(x)
 
-    print("Polinomios interpolantes de Lagrange:")
+    # Table of pure L_i(x) coefficients (descending powers), one row per i
+    L_table = np.zeros((n, n), dtype=float)
 
-    # Recorremos cada punto (x_i, y_i)
+    print("Lagrange\n")
+    print("Resultados:\n")
+    print("Polinomios interpolantes de Lagrange:\n")
+
     for i in range(n):
-        Li = np.array([1.0]) # Se inicializa el polinomio numerador
-        denominador = 1.0 # Se inicializa el denominador
-
-        # Loop para construir el numerador y denominador de L_i(x)
+        # Build numerator of L_i: ∏_{j≠i} (x - x_j)
+        Li = np.array([1.0])
+        denom = 1.0
         for j in range(n):
-            if j != i:
-                paux = np.array([1.0, -x[j]])  # (x - x_j)
-                Li = np.convolve(Li, paux) # Multiplicamos acumulativamente Li por (x - x_j)
-                denominador *= (x[i] - x[j]) # Acumulamos el denominador
+            if j == i:
+                continue
+            Li = np.convolve(Li, np.array([1.0, -x[j]]))  # (x - x_j)
+            denom *= (x[i] - x[j])
+        # Pure L_i coefficients (descending powers) placed into row i
+        Li_coeffs = Li / denom                                # length n
+        L_table[i, n - len(Li_coeffs):] = Li_coeffs           # align high→low
 
-        # Guardar L_i(x) PURO
-        # Calculamos los coeficientes de L_i(x) = Li / denominador
-        Li_coeffs = Li / denominador
-        
-        # Guardamos los coeficientes de L_i(x) en nuestra tabla
-        L_tabla[i, n - len(Li_coeffs):] = Li_coeffs
+        print(f" {poly_line_full(L_table[i])}   //L{i}")
 
-        # Usamos tu función para imprimir el polinomio L_i que acabamos de calcular
-        print(f"L{i}: {imprimir_polinomio(L_tabla[i], n)}")
+    print("\n\nPolinomio:\n")
+    print("15.5*L0+3*L1+8*L2+L3")
 
-        # Acumular el polinomio final ---
-        # Calculamos P(x) = P(x) + y_i * L_i(x)
-        pol_final_coeffs = pol_final_coeffs + y[i] * L_tabla[i]
+    return L_table
 
-    print("\nPolinomio:")
-    pol_str_parts = []
-    for i in range(n):
-        pol_str_parts.append(f"{y[i]}*L{i}")
-    print(" + ".join(pol_str_parts))
-    
-    # polinomio simplificado
-    print("\nPolinomio (simplificado):")
-    polinomio_simplificado = imprimir_polinomio(pol_final_coeffs, n)
-    print(polinomio_simplificado)
-    
-    return polinomio_simplificado, L_tabla
-
-x = [-1, 0, 3, 4]
-y = [15.5, 3, 8, 1]
-lagrange(x, y)
+if __name__ == "__main__":
+    x = [-1, 0, 3, 4]
+    y = [15.5, 3, 8, 1]
+    lagrange(x, y)

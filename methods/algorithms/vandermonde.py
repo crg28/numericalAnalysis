@@ -1,45 +1,65 @@
+# vandermonde.py
 import numpy as np
 
-def imprimir_polinomio(a, n):
-    polinomio = ""
-    for i, coef in enumerate(a):
-        exp = n -1 -i
-        coef = round(coef, 4)
-        if coef == 0:
+def polynomial_string(coefs):
+    """
+    Build a polynomial string from highest to lowest degree with 6-decimal
+    coefficients and compact signs, e.g. -1.141667x^3+5.825000x^2-5.533333x+3.000000
+    """
+    n = len(coefs)
+    parts = []
+    for i, c in enumerate(coefs):
+        exp = n - 1 - i
+        c_rounded = float(np.round(c, 6))
+        if abs(c_rounded) < 1e-12:
             continue
-        signo = " + " if coef > 0 and i > 0 else " "
+
+        sign = "-" if c_rounded < 0 else "+"
+        mag = abs(c_rounded)
+
         if exp == 0:
-            polinomio += f"{signo}{coef}"
+            term = f"{mag:.6f}"
         elif exp == 1:
-            polinomio += f"{signo}{coef}x"
+            term = f"{mag:.6f}x"
         else:
-            polinomio += f"{signo}{coef}x^{exp}"
-    return polinomio
+            term = f"{mag:.6f}x^{exp}"
 
-def vandermonde(x, y, x_real=None, y_real=None):
-    x = np.array(x) # Convierte la lista de puntos x en un arreglo de NumPy
-    n = len(x) # Número de puntos
-    A = [] # Matriz del sistema lineal
-    b = np.array(y) # Vector de términos independientes
+        if not parts:
+            parts.append(term if sign == "+" else sign + term)
+        else:
+            parts.append(sign + term)
 
-    # Se construye la matriz de Vandermonde
-    for numero in x:
-        fila = []
-        # Cada fila contiene potencias decrecientes del valor de x
-        for i in range(n - 1, -1, -1): # Esto recorre los números del n - 1 hasta 0, en orden descendente, que sería el exponente de cada número que va en la matriz de Vandermonde
-            fila.append(numero**i)
-        A.append(fila)
+    return "".join(parts) if parts else "0.000000"
 
-    A = np.array(A) # Convierte A a un arreglo NumPy
-    a = np.linalg.solve(A, b) # Resuelve el sistema V*a = y (A*a = b) para obtener los coeficientes del polinomio
-    print("La matriz de Vandermonde: ")
-    print(A)
-    print("Los coeficientes: ")
-    print(a)
-    pol = imprimir_polinomio(a, n)
-    print(f"Polinomio: {pol}")
+def vandermonde(x, y):
+    x = np.array(x, dtype=float)
+    y = np.array(y, dtype=float)
+    n = len(x)
 
+    # Build Vandermonde matrix with descending powers: x^(n-1) ... x^0
+    V = np.zeros((n, n), dtype=float)
+    for r, xv in enumerate(x):
+        for c in range(n):
+            V[r, c] = xv ** (n - 1 - c)
 
-#x = [-1,0,3,4]
-#y = [15.5,3,8,1]
-#vandermonde(x,y)
+    # Solve V a = y
+    a = np.linalg.solve(V, y)
+
+    # ---- Print results in the required format ----
+    print("Vandermonde\n")
+    print("Resultados:\n")
+    print("Matriz de Vandermonde:\n")
+    for row in V:
+        print(" " + "  ".join(f"{val: .6f}" for val in row))
+    print("\nCoeficientes del polinomio:\n")
+    print(" " + "  ".join(f"{coef: .6f}" for coef in a))
+    print("\nPolinomio:\n")
+    print(polynomial_string(a))
+    print()
+
+if __name__ == "__main__":
+    # Data from your table
+    x = [-1, 0, 3, 4]
+    y = [15.5, 3, 8, 1]
+
+    vandermonde(x, y)

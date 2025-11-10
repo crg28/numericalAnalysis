@@ -1,3 +1,5 @@
+# gaussian_elimination_partial_pivoting.py
+
 # === Gaussian Elimination with PARTIAL Pivoting ===
 
 def exchange_rows(A, r1, r2):
@@ -12,15 +14,15 @@ def print_matrix(A, step):
 
 def back_substitution(A, n, tol=1e-12):
     """Perform back substitution on an upper-triangular augmented matrix."""
-    x = [0.0]*n
-    for i in range(n-1, -1, -1):
+    x = [0.0] * n
+    for i in range(n - 1, -1, -1):
         piv = A[i][i]
         if abs(piv) < tol:
             raise ZeroDivisionError(f"Pivot ~0 at position ({i},{i})")
         s = 0.0
-        for j in range(i+1, n):
-            s += A[i][j]*x[j]
-        x[i] = (A[i][n] - s)/piv
+        for j in range(i + 1, n):
+            s += A[i][j] * x[j]
+        x[i] = (A[i][n] - s) / piv
     return x
 
 def partial_pivoting(A, n, tol=1e-12):
@@ -28,7 +30,7 @@ def partial_pivoting(A, n, tol=1e-12):
     print("Gaussian elimination with partial pivoting\n\nResults:")
     print_matrix(A, step=0)
 
-    for k in range(n-1):
+    for k in range(n - 1):
         # Find pivot row with max |A[i,k]| (for i ≥ k)
         pivot_row = max(range(k, n), key=lambda i: abs(A[i][k]))
         if abs(A[pivot_row][k]) < tol:
@@ -38,33 +40,29 @@ def partial_pivoting(A, n, tol=1e-12):
 
         # Elimination
         piv = A[k][k]
-        for i in range(k+1, n):
-            factor = A[i][k]/piv
-            for j in range(k, n+1):
-                A[i][j] -= factor*A[k][j]
+        for i in range(k + 1, n):
+            factor = A[i][k] / piv
+            for j in range(k, n + 1):
+                A[i][j] -= factor * A[k][j]
 
-        print_matrix(A, step=k+1)
+        print_matrix(A, step=k + 1)
     return A
 
-def read_system():
-    """Read n, matrix A and vector b, build augmented matrix."""
-    n = int(input("Enter n (system size): ").strip())
-    print(f"Enter matrix A ({n}x{n}), one row per line:")
-    Acoef = []
-    for i in range(n):
-        row = list(map(float, input(f"Row {i+1}: ").split()))
-        if len(row) != n:
-            raise ValueError(f"Expected {n} values in row {i+1}.")
-        Acoef.append(row)
-    b = list(map(float, input("Enter vector b (n values): ").split()))
-    if len(b) != n:
-        raise ValueError(f"Expected {n} values in b.")
-    Aaug = [Acoef[i] + [b[i]] for i in range(n)]
-    return Aaug, n
-
 def main():
+    # ---------- Fixed test system (no input) ----------
+    Acoef = [
+        [2.0,  -1.0,  0.0,  3.0],
+        [1.0,   0.5,  3.0,  8.0],
+        [0.0,  13.0, -2.0, 11.0],
+        [14.0,  5.0, -2.0,  3.0],
+    ]
+    b = [1.0, 1.0, 1.0, 1.0]
+    n = len(Acoef)
+
+    # Build augmented matrix [A | b]
+    Aaug = [row[:] + [bi] for row, bi in zip(Acoef, b)]
+
     try:
-        Aaug, n = read_system()
         U = partial_pivoting(Aaug, n)
         x = back_substitution(U, n)
         print("\n\nAfter applying back substitution\n")
