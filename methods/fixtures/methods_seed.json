@@ -1,0 +1,210 @@
+[
+  {
+    "model": "methods.category",
+    "pk": 1,
+    "fields": {
+      "name": "Métodos de raíces",
+      "slug": "raices"
+    }
+  },
+  {
+    "model": "methods.category",
+    "pk": 2,
+    "fields": {
+      "name": "Sistemas lineales",
+      "slug": "lineales"
+    }
+  },
+  {
+    "model": "methods.category",
+    "pk": 3,
+    "fields": {
+      "name": "Interpolación",
+      "slug": "interpolacion"
+    }
+  },
+
+
+  {
+    "model": "methods.method",
+    "pk": 101,
+    "fields": {
+      "name": "Bisection",
+      "slug": "bisection",
+      "description": "Find roots by partitioning the interval.",
+      "category": 1,
+      "is_featured": true,
+      "kind": "bisection"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 102,
+    "fields": {
+      "name": "Fixed Point",
+      "slug": "fixed-point",
+      "description": "Solve x=g(x) equations using iteration.",
+      "category": 1,
+      "is_featured": true,
+      "kind": "fixed_point"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 103,
+    "fields": {
+      "name": "Newton-Raphson",
+      "slug": "newton-raphson",
+      "description": "Roots with derivative (Newton's method).",
+      "category": 1,
+      "is_featured": true,
+      "kind": "newton"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 104,
+    "fields": {
+      "name": "Secant",
+      "slug": "secant",
+      "description": "Roots without derivatives.",
+      "category": 1,
+      "is_featured": true,
+      "kind": "secant"
+    }
+  },
+
+  {
+    "model": "methods.method",
+    "pk": 201,
+    "fields": {
+      "name": "Partial Pivoting",
+      "slug": "partial-pivoting",
+      "description": "Gaussian elimination with partial pivoting.",
+      "category": 2,
+      "is_featured": true,
+      "kind": "pivot_partial"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 202,
+    "fields": {
+      "name": "Total Pivoting",
+      "slug": "total-pivoting",
+      "description": "Gaussian elimination with full pivoting.",
+      "category": 2,
+      "is_featured": true,
+      "kind": "pivot_total"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 203,
+    "fields": {
+      "name": "Jacobi",
+      "slug": "jacobi",
+      "description": "Iterative linear solver using Jacobi method.",
+      "category": 2,
+      "is_featured": true,
+      "kind": "jacobi"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 204,
+    "fields": {
+      "name": "Gauss-Seidel",
+      "slug": "gauss-seidel",
+      "description": "Iterative linear solver using Gauss-Seidel method.",
+      "category": 2,
+      "is_featured": true,
+      "kind": "gauss_seidel"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 205,
+    "fields": {
+      "name": "SOR",
+      "slug": "sor",
+      "description": "Successive Over-Relaxation (iterative linear solver).",
+      "category": 2,
+      "is_featured": true,
+      "kind": "sor"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 206,
+    "fields": {
+      "name": "Crout Factorization",
+      "slug": "crout",
+      "description": "LU decomposition using Crout’s method.",
+      "category": 2,
+      "is_featured": true,
+      "kind": "crout"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 207,
+    "fields": {
+      "name": "Doolittle Factorization",
+      "slug": "doolittle",
+      "description": "LU decomposition using Doolittle’s method.",
+      "category": 2,
+      "is_featured": true,
+      "kind": "doolittle"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 208,
+    "fields": {
+      "name": "Cholesky Factorization",
+      "slug": "cholesky",
+      "description": "Matrix factorization A=LLᵀ for SPD matrices.",
+      "category": 2,
+      "is_featured": true,
+      "kind": "cholesky"
+    }
+  },
+
+  {
+    "model": "methods.method",
+    "pk": 301,
+    "fields": {
+      "name": "Lagrange Interpolation",
+      "slug": "lagrange",
+      "description": "Polynomial interpolation using Lagrange formula.",
+      "category": 3,
+      "is_featured": true,
+      "kind": "lagrange"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 302,
+    "fields": {
+      "name": "Vandermonde Interpolation",
+      "slug": "vandermonde",
+      "description": "Polynomial interpolation using Vandermonde matrix.",
+      "category": 3,
+      "is_featured": true,
+      "kind": "vandermonde"
+    }
+  },
+  {
+    "model": "methods.method",
+    "pk": 303,
+    "fields": {
+      "name": "Cubic Spline",
+      "slug": "spline",
+      "description": "Smooth interpolation using natural cubic splines.",
+      "category": 3,
+      "is_featured": true,
+      "kind": "spline"
+    }
+  }
+]
