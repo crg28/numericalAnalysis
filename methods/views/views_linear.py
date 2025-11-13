@@ -1,134 +1,52 @@
 # methods/views/views_linear.py
 from __future__ import annotations
-import importlib, io
-from contextlib import redirect_stdout
+
 from django.shortcuts import render, get_object_or_404
 from sympy import Matrix
+
 from ..models import Method
 from ..forms import AbForm, IterativeForm, SorForm
-from .utils import parse_matrix_flex, parse_vector_flex, fmt_matrix, invoke_algorithm
-
-
-
-# ---------- parsing helpers ----------
-def _parse_matrix_flex(text: str) -> Matrix:
-    t = (text or "").strip()
-    if not t:
-        return Matrix([])
-    if t.startswith("["):
-        from ast import literal_eval
-        return Matrix(literal_eval(t))
-    rows = []
-    for raw in t.splitlines():
-        raw = raw.strip()
-        if not raw:
-            continue
-        parts = [p for p in raw.replace(",", " ").split() if p]
-        rows.append([float(x) for x in parts])
-    if len(rows) == 1 and ";" in t:
-        rows = []
-        for seg in t.split(";"):
-            parts = [p for p in seg.replace(",", " ").split() if p]
-            if parts:
-                rows.append([float(x) for x in parts])
-    return Matrix(rows)
-
-
-def _parse_vector_flex(text: str) -> Matrix:
-    t = (text or "").strip()
-    if not t:
-        return Matrix([])
-    if t.startswith("["):
-        from ast import literal_eval
-        data = literal_eval(t)
-        return Matrix(data).reshape(len(data), 1)
-    vals = []
-    if "\n" in t:
-        for line in t.splitlines():
-            line = line.strip()
-            if line:
-                vals.append(float(line.replace(",", " ").split()[0]))
-    else:
-        vals = [float(p) for p in t.replace("\n", " ").replace(";", " ").replace(",", " ").split() if p]
-    return Matrix(vals).reshape(len(vals), 1)
-
-
-def _fmt_matrix(M):
-    if M is None:
-        return None
-    try:
-        return [[float(v) for v in row] for row in list(M.tolist())]
-    except Exception:
-        return [[float(v) for v in row] for row in M]
-
-
-# ---------- stdout capture for your algorithms modules ----------
-_CANDIDATE_FUNCS = (
-    "run", "solve", "algorithm", "main", "execute",
-    "cholesky_demo", "cholesky_like", "cholesky",
-    "crout", "doolittle", "jacobi", "gauss_seidel", "sor",
-    "gaussian_elimination", "partial_pivoting", "total_pivoting",
-    "lu", "lu_factorization",
+from .utils import (
+    parse_matrix_flex,
+    parse_vector_flex,
+    fmt_matrix,
+    invoke_linear_algorithm,  # <- correct helper name
 )
 
-def _invoke_algorithm(kind: str, A: Matrix, b: Matrix, extras=None) -> str | None:
-    try:
-        mod = importlib.import_module(f"methods.algorithms.{kind.replace('-', '_')}")
-    except Exception:
-        return None
-    fn = None
-    for name in _CANDIDATE_FUNCS:
-        if hasattr(mod, name):
-            fn = getattr(mod, name)
-            break
-    if not fn:
-        return None
-
-    import numpy as np
-    A_np = np.array(_fmt_matrix(A), dtype=float)
-    b_np = np.array([float(v) for v in list(b)], dtype=float)
-    buf = io.StringIO()
-    try:
-        with redirect_stdout(buf):
-            if extras:
-                fn(A_np, b_np, extras=extras)
-            else:
-                fn(A_np, b_np)
-        return buf.getvalue()
-    except Exception:
-        return buf.getvalue() or None
-
-
-# ---------- help texts ----------
+# ---------- help text ----------
 HELP_TEXT = {
     "jacobi": [
-        "Converges if A is diagonally dominant or SPD.",
-        "Shown error is the residual norm ||Ax-b|| per iteration.",
+        "Convergence if A is diagonally dominant or SPD.",
+        "Shows the residual ||Ax-b|| per iteration.",
     ],
     "gauss_seidel": [
-        "In-place updates; often faster than Jacobi.",
+        "Updates in-place; often converges faster than Jacobi.",
     ],
     "sor": [
-        "0 < ω < 2; ω = 1 ⇒ Gauss-Seidel.",
+        "0<ω<2; ω=1 ⇒ Gauss-Seidel.",
     ],
     "crout": ["LU with diag(U)=1 (Crout)."],
     "doolittle": ["LU with diag(L)=1 (Doolittle)."],
     "cholesky": [
-        "Requires SPD (A=Aᵀ, xᵀAx>0). Falls back to LU if not SPD.",
+        "Requires SPD (A=Aᵀ, xᵀAx>0). If not SPD, falls back to LU.",
     ],
     "gaussian_elimination": ["Gaussian Elimination."],
     "pivot_partial": ["Partial pivoting by rows."],
     "pivot_total": ["Total pivoting by rows and columns."],
-    "lu_simple": ["Plain LU (no pivoting)."],
-    "lu_pivot": ["LU with pivoting."],
+    "lu_simple": ["LU factorization without pivoting."],
+    "lu_pivot": ["LU factorization with pivoting."],
 }
 
-
 def method_run_linear(request, slug):
+    """
+    Single entry for all linear-system/factorization methods.
+    It invokes your existing algorithms in methods/algorithms/*
+    and captures EXACTLY their console output.
+    """
     method = get_object_or_404(Method, slug=slug)
-    kind = method.kind
+    kind = method.kind  # e.g., 'jacobi', 'crout', 'cholesky', ...
 
-    # Select form by method kind
+    # Pick the right form
     if kind in ("jacobi", "gauss_seidel"):
         form = IterativeForm(request.POST or None)
     elif kind == "sor":
@@ -140,42 +58,59 @@ def method_run_linear(request, slug):
         "method": method,
         "form": form,
         "help_items": HELP_TEXT.get(kind, []),
-        "solution": None, "L": None, "U": None, "P": None,
-        "iters": None, "steps": None, "console": None, "error": None,
+        "solution": None,
+        "L": None,
+        "U": None,
+        "P": None,
+        "console": None,
+        "error": None,
     }
 
     if request.method == "POST" and form.is_valid():
         try:
-            A = _parse_matrix_flex(form.cleaned_data.get("A", ""))
-            b = _parse_vector_flex(form.cleaned_data.get("b", ""))
+            A = parse_matrix_flex(form.cleaned_data.get("A", ""))
+            b = parse_vector_flex(form.cleaned_data.get("b", ""))
 
-            # Extras passed into your algorithms
+            # Build extras for iterative methods
             extras = {}
             if kind in ("jacobi", "gauss_seidel", "sor"):
                 extras["tol"] = float(form.cleaned_data.get("tol", 1e-6))
                 extras["max_iter"] = int(form.cleaned_data.get("max_iter", 50))
-                x0_txt = form.cleaned_data.get("x0") or ""
-                x0 = _parse_vector_flex(x0_txt)
-                extras["x0"] = [float(v) for v in list(x0)] if x0.shape[0] else [0.0] * A.shape[0]
+                x0_vec = parse_vector_flex(form.cleaned_data.get("x0") or "")
+                extras["x0"] = (
+                    [float(v) for v in list(x0_vec)] if x0_vec.shape[0] else [0.0] * A.shape[0]
+                )
             if kind == "sor":
                 extras["w"] = float(form.cleaned_data.get("w", 1.0))
 
-            console = _invoke_algorithm(kind, A, b, extras)
+            # ---- invoke your module and capture EXACT console output
+            console = invoke_linear_algorithm(kind, A, b, extras)
             if console:
                 ctx["console"] = console
 
-            # Base solution and optional L/U/P
+            # Optional: provide a direct SymPy solve as a convenience
             try:
                 ctx["solution"] = [float(v) for v in list(A.LUsolve(b))]
             except Exception:
                 ctx["solution"] = None
 
-            if kind in ("doolittle", "crout", "lu_simple", "lu_pivot",
-                        "gaussian_elimination", "pivot_partial", "pivot_total", "cholesky"):
+            # If the method naturally yields L/U/P, try to expose them with SymPy
+            if kind in (
+                "doolittle",
+                "crout",
+                "lu_simple",
+                "lu_pivot",
+                "gaussian_elimination",
+                "pivot_partial",
+                "pivot_total",
+                "cholesky",
+            ):
                 try:
                     if kind == "cholesky":
                         try:
-                            L = A.cholesky(); U = L.T; P = None
+                            L = A.cholesky()
+                            U = L.T
+                            P = None
                         except Exception:
                             L, U, perm = A.LUdecomposition()
                             from sympy import Matrix as M
@@ -188,10 +123,9 @@ def method_run_linear(request, slug):
                         P = M.eye(A.shape[0])
                         for i, j in enumerate(perm):
                             P.row_swap(i, j)
-
-                    ctx["L"] = _fmt_matrix(L)
-                    ctx["U"] = _fmt_matrix(U)
-                    ctx["P"] = _fmt_matrix(P) if P is not None else None
+                    ctx["L"] = fmt_matrix(L)
+                    ctx["U"] = fmt_matrix(U)
+                    ctx["P"] = fmt_matrix(P) if P is not None else None
                 except Exception:
                     pass
 

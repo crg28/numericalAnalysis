@@ -1,35 +1,72 @@
 # methods/views/views_roots.py
 from __future__ import annotations
-import io, base64
+
+import io
+import base64
+
 import matplotlib
 matplotlib.use("Agg")  # headless backend
 import matplotlib.pyplot as plt
+import numpy as np
 
 from django import forms
 from django.shortcuts import render, get_object_or_404
 
-from sympy import symbols, sympify, lambdify
-from numpy import linspace  # optional
+from sympy import symbols
 
 from ..models import Method
-from .utils import compile_fx  # use shared helper
-
+from .utils import compile_fx, invoke_root_algorithm
 
 x = symbols("x")
 
-# --------- Forms for each root-finding method ---------
+
+# ------------------------- Forms -------------------------
 class BisectionForm(forms.Form):
     fx = forms.CharField(label="f(x)", initial="x**3 + 4*x**2 - 10")
-    a  = forms.FloatField(label="a")
-    b  = forms.FloatField(label="b")
+    a = forms.FloatField(label="a")
+    b = forms.FloatField(label="b")
     tol = forms.FloatField(label="Tolerance", initial=1e-6)
     max_iter = forms.IntegerField(label="Max iterations", initial=50)
 
-class NewtonForm(forms.Form):
-    fx = forms.CharField(label="f(x)")
+
+class FalsePositionForm(forms.Form):
+    fx = forms.CharField(label="f(x)", initial="x**3 + 4*x**2 - 10")
+    a = forms.FloatField(label="a")
+    b = forms.FloatField(label="b")
+    tol = forms.FloatField(label="Tolerance", initial=1e-6)
+    max_iter = forms.IntegerField(label="Max iterations", initial=50)
+
+
+class FixedPointForm(forms.Form):
+    gx = forms.CharField(label="g(x)")
     x0 = forms.FloatField(label="x0")
     tol = forms.FloatField(label="Tolerance", initial=1e-6)
     max_iter = forms.IntegerField(label="Max iterations", initial=50)
+
+
+class IncrementalSearchForm(forms.Form):
+    fx = forms.CharField(label="f(x)")
+    x0 = forms.FloatField(label="x0")
+    delta = forms.FloatField(label="Δ", initial=0.5)
+    max_iter = forms.IntegerField(label="Max iterations", initial=50)
+
+
+class MultipleRootsForm(forms.Form):
+    fx = forms.CharField(label="f(x)")
+    dfx = forms.CharField(label="f'(x)")
+    d2fx = forms.CharField(label="f''(x)")
+    x0 = forms.FloatField(label="x0")
+    tol = forms.FloatField(label="Tolerance", initial=1e-6)
+    max_iter = forms.IntegerField(label="Max iterations", initial=50)
+
+
+class NewtonForm(forms.Form):
+    fx = forms.CharField(label="f(x)")
+    dfx = forms.CharField(label="f'(x)")
+    x0 = forms.FloatField(label="x0")
+    tol = forms.FloatField(label="Tolerance", initial=1e-6)
+    max_iter = forms.IntegerField(label="Max iterations", initial=50)
+
 
 class SecantForm(forms.Form):
     fx = forms.CharField(label="f(x)")
@@ -38,108 +75,75 @@ class SecantForm(forms.Form):
     tol = forms.FloatField(label="Tolerance", initial=1e-6)
     max_iter = forms.IntegerField(label="Max iterations", initial=50)
 
-class FixedPointForm(forms.Form):
-    gx = forms.CharField(label="g(x)")
-    x0 = forms.FloatField(label="x0")
-    tol = forms.FloatField(label="Tolerance", initial=1e-6)
-    max_iter = forms.IntegerField(label="Max iterations", initial=50)
 
-class FalsePositionForm(forms.Form):
-    fx = forms.CharField(label="f(x)")
-    a  = forms.FloatField(label="a")
-    b  = forms.FloatField(label="b")
-    tol = forms.FloatField(label="Tolerance", initial=1e-6)
-    max_iter = forms.IntegerField(label="Max iterations", initial=50)
-
-class IncrementalSearchForm(forms.Form):
-    fx = forms.CharField(label="f(x)")
-    x0 = forms.FloatField(label="x0")
-    delta = forms.FloatField(label="Δ", initial=0.5)
-    max_iter = forms.IntegerField(label="Max iterations", initial=50)
-
-class MultipleRootsForm(forms.Form):
-    fx = forms.CharField(label="f(x)")
-    x0 = forms.FloatField(label="x0")
-    tol = forms.FloatField(label="Tolerance", initial=1e-6)
-    max_iter = forms.IntegerField(label="Max iterations", initial=50)
-
-
-# --------- local helpers ---------
-def _compile_fx_local(expr_text):
-    expr = sympify(expr_text, convert_xor=True)
-    return lambdify(x, expr, "numpy"), expr
-
-
-def _bisection(f, a, b, tol, maxit):
-    rows = []
-    fa, fb = f(a), f(b)
-    if fa * fb > 0:
-        return None, [{"error": "f(a) * f(b) >= 0 (no sign change)."}]
-    c = a
-    for k in range(1, maxit + 1):
-        c_old = c
-        c = (a + b) / 2
-        fc = f(c)
-        rows.append({"k": k, "a": a, "b": b, "c": c, "f(c)": fc, "err": abs(c - c_old)})
-        if abs(fc) < tol or abs(c - c_old) < tol:
-            break
-        if fa * fc < 0:
-            b, fb = c, fc
-        else:
-            a, fa = c, fc
-    return c, rows
-
-
-def _newton(expr, x0, tol, maxit):
-    f = lambdify(x, expr, "numpy")
-    df = lambdify(x, expr.diff(x), "numpy")
-    rows = []
-    xk = x0
-    for k in range(1, maxit + 1):
-        fx, dfx = f(xk), df(xk)
-        if dfx == 0:
-            rows.append({"k": k, "x": xk, "f": fx, "error": "f'(xk) = 0"})
-            break
-        xnew = xk - fx / dfx
-        rows.append({"k": k, "x": xk, "x_next": xnew, "err": abs(xnew - xk)})
-        if abs(fx) < tol or abs(xnew - xk) < tol:
-            xk = xnew
-            break
-        xk = xnew
-    return xk, rows
-
-
-# --------- help texts ---------
-HELP = {
-    "bisection": [
-        "Requires f(a)·f(b) < 0.",
-        "Plot includes a, b, and the final c marker.",
-    ],
-    "newton": [
-        "Requires f and f'. Stops if f'(xk)=0.",
-    ],
-    "secant": ["Does not require derivative."],
-    "fixed_point": ["Convergence if |g'(x)| < 1 in a neighborhood."],
-    "false_position": ["Bracketing using linear interpolation."],
-    "incremental_search": ["Scans for sign changes over steps."],
-    "multiple_roots": ["Typically uses f, f', and f'' (if implemented)."],
-}
-
-
+# ------------------------- Form selector -------------------------
 def _form_for_kind(kind, *args, **kwargs):
-    if kind == "bisection": return BisectionForm(*args, **kwargs)
-    if kind == "newton": return NewtonForm(*args, **kwargs)
-    if kind == "secant": return SecantForm(*args, **kwargs)
-    if kind == "fixed_point": return FixedPointForm(*args, **kwargs)
-    if kind == "false_position": return FalsePositionForm(*args, **kwargs)
-    if kind == "incremental_search": return IncrementalSearchForm(*args, **kwargs)
-    if kind == "multiple_roots": return MultipleRootsForm(*args, **kwargs)
+    if kind == "bisection":
+        return BisectionForm(*args, **kwargs)
+    if kind == "false_position":
+        return FalsePositionForm(*args, **kwargs)
+    if kind == "fixed_point":
+        return FixedPointForm(*args, **kwargs)
+    if kind == "incremental_search":
+        return IncrementalSearchForm(*args, **kwargs)
+    if kind == "multiple_roots":
+        return MultipleRootsForm(*args, **kwargs)
+    if kind == "newton":
+        return NewtonForm(*args, **kwargs)
+    if kind == "secant":
+        return SecantForm(*args, **kwargs)
+    # default
     return BisectionForm(*args, **kwargs)
 
 
+# ------------------------- Plot helpers -------------------------
+def _plot_fx_interval(f, a: float, b: float, title: str) -> str | None:
+    """
+    Plot f(x) on [a,b] with horizontal axis and return a data URI (png).
+    """
+    try:
+        X = np.linspace(a, b, 400)
+        Y = f(X)
+        fig, ax = plt.subplots(figsize=(6, 3))
+        ax.axhline(0, linewidth=0.8)
+        ax.plot(X, Y)
+        ax.set_title(title)
+        buf = io.BytesIO()
+        fig.tight_layout()
+        fig.savefig(buf, format="png", dpi=120)
+        plt.close(fig)
+        return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        return None
+
+
+# ------------------------- Main view -------------------------
+HELP = {
+    "bisection": [
+        "Requires f(a)·f(b) < 0.",
+        "Plot included on [a,b].",
+    ],
+    "false_position": [
+        "Bracketing with linear interpolation.",
+        "Plot included on [a,b].",
+    ],
+    "fixed_point": ["Converges if |g'(x)| < 1 nearby."],
+    "incremental_search": ["Search for sign change by steps of Δ."],
+    "multiple_roots": ["Uses f, f' and f''."],
+    "newton": ["Requires f and f'."],
+    "secant": ["No derivative required."],
+}
+
 def method_run_roots(request, slug):
+    """
+    Unified roots runner:
+    - Builds expr_text (string), f_lambda (callable) and numeric params
+    - Calls invoke_root_algorithm(kind, expr_text, f_lambda, params)
+    - Captures exact console output from your algorithms module
+    - Draws plot only for bracket methods [a,b]
+    """
     method = get_object_or_404(Method, slug=slug)
-    kind = method.kind
+    kind = (method.kind or "").lower()  # e.g., "bisection", "false_position", ...
 
     form = _form_for_kind(kind, request.POST or None)
 
@@ -147,54 +151,116 @@ def method_run_roots(request, slug):
         "method": method,
         "form": form,
         "help_items": HELP.get(kind, []),
-        "table": None,
-        "root": None,
-        "plot_data_uri": None,
-        "error": None,
+        "console": None,          # exact console output from your module
+        "error": None,            # exception message if any
+        "plot_data_uri": None,    # plot (for [a,b] methods)
     }
 
     if request.method == "POST" and form.is_valid():
         try:
-            if kind == "bisection":
-                f, _ = _compile_fx_local(form.cleaned_data["fx"])
-                a = float(form.cleaned_data["a"])
-                b = float(form.cleaned_data["b"])
-                tol = float(form.cleaned_data["tol"])
-                n  = int(form.cleaned_data["max_iter"])
-                root, rows = _bisection(f, a, b, tol, n)
-                ctx["root"] = root
-                ctx["table"] = rows
+            cleaned = form.cleaned_data
+            expr_text: str = ""     # textual function sent to the invoker
+            f_lambda = None         # compiled numeric function (when needed)
+            params: dict = {}       # numeric/extra params for the invoker
 
-                # Plot f(x) on [a,b] with markers at a, b, and c*
+            # ---- Per-method input mapping
+            if kind in ("bisection", "false_position"):
+                # f(x), a, b, tol, max_iter
+                expr_text = cleaned.get("fx", "") or ""
+                f_lambda, _ = compile_fx(expr_text)
+                params = {
+                    "a": float(cleaned["a"]),
+                    "b": float(cleaned["b"]),
+                    "tol": float(cleaned.get("tol", 1e-6)),
+                    "max_iter": int(cleaned.get("max_iter", 50)),
+                }
+                # Plot f on [a,b]
                 try:
-                    import numpy as np
-                    X = np.linspace(a, b, 400)
-                    Y = f(X)
-                    fig, ax = plt.subplots(figsize=(6, 3))
-                    ax.axhline(0, linewidth=0.8)
-                    ax.plot(X, Y)
-                    if root is not None:
-                        ax.scatter([a, b, root], [f(a), f(b), f(root)], s=30)
-                    ax.set_title("Bisection")
-                    buf = io.BytesIO()
-                    fig.tight_layout()
-                    fig.savefig(buf, format="png", dpi=120)
-                    plt.close(fig)
-                    ctx["plot_data_uri"] = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+                    ctx["plot_data_uri"] = _plot_fx_interval(
+                        f_lambda, params["a"], params["b"], kind.capitalize()
+                    )
                 except Exception:
                     pass
 
+            elif kind == "fixed_point":
+                # g(x), x0, tol, max_iter
+                expr_text = cleaned.get("gx", "") or ""
+                f_lambda, _ = compile_fx(expr_text)
+                params = {
+                    "x0": float(cleaned["x0"]),
+                    "tol": float(cleaned.get("tol", 1e-6)),
+                    "max_iter": int(cleaned.get("max_iter", 50)),
+                    # also pass string name commonly used by FP modules
+                    "g_str": expr_text,
+                }
+
+            elif kind == "incremental_search":
+                # f(x), x0, delta, max_iter
+                expr_text = cleaned.get("fx", "") or ""
+                f_lambda, _ = compile_fx(expr_text)
+                params = {
+                    "x0": float(cleaned["x0"]),
+                    "delta": float(cleaned.get("delta", 0.5)),
+                    "max_iter": int(cleaned.get("max_iter", 50)),
+                }
+
+            elif kind == "multiple_roots":
+                # Some materials call it h, others f. Accept both.
+                expr_text = (
+                    cleaned.get("hx")
+                    or cleaned.get("fx")
+                    or ""
+                )
+                f_lambda, _ = compile_fx(expr_text)
+
+                df_text = cleaned.get("dhx") or cleaned.get("dfx") or ""
+                d2f_text = cleaned.get("d2hx") or cleaned.get("d2fx") or ""
+                # (If your module requires strings for df and d2f, pass them too)
+                params = {
+                    "x0": float(cleaned["x0"]),
+                    "tol": float(cleaned.get("tol", 1e-6)),
+                    "max_iter": int(cleaned.get("max_iter", 50)),
+                }
+                if df_text:
+                    params["df_str"] = df_text
+                if d2f_text:
+                    params["d2f_str"] = d2f_text
+
             elif kind == "newton":
-                _, expr = _compile_fx_local(form.cleaned_data["fx"])
-                x0 = float(form.cleaned_data["x0"])
-                tol = float(form.cleaned_data["tol"])
-                n  = int(form.cleaned_data["max_iter"])
-                root, rows = _newton(expr, x0, tol, n)
-                ctx["root"] = root
-                ctx["table"] = rows
+                # f(x), f'(x) (preferred), x0, tol, max_iter
+                expr_text = cleaned.get("fx", "") or ""
+                f_lambda, _ = compile_fx(expr_text)
+                df_text = cleaned.get("dfx", "")  # if the form already asks for it
+                params = {
+                    "x0": float(cleaned["x0"]),
+                    "tol": float(cleaned.get("tol", 1e-6)),
+                    "max_iter": int(cleaned.get("max_iter", 50)),
+                }
+                if df_text:
+                    params["df_str"] = df_text  # many modules accept derivative as string
+
+            elif kind == "secant":
+                # f(x), x0, x1, tol, max_iter
+                expr_text = cleaned.get("fx", "") or ""
+                f_lambda, _ = compile_fx(expr_text)
+                params = {
+                    "x0": float(cleaned["x0"]),
+                    "x1": float(cleaned["x1"]),
+                    "tol": float(cleaned.get("tol", 1e-6)),
+                    "max_iter": int(cleaned.get("max_iter", 50)),
+                }
 
             else:
-                ctx["error"] = "UI for this root-finding method is not implemented yet. You can hook your own algorithm module as done for linear methods."
+                ctx["error"] = f"Unsupported roots method: {kind}"
+                return render(request, "methods/run_roots.html", ctx)
+
+            # ---- Invoke your real module and capture EXACT console output
+            # MUST be (kind, expr_text, f_lambda, params)
+            out = invoke_root_algorithm(kind, expr_text, f_lambda, params)
+            if out:
+                ctx["console"] = out
+            else:
+                ctx["console"] = "(no output printed by the module)"
 
         except Exception as e:
             ctx["error"] = str(e)

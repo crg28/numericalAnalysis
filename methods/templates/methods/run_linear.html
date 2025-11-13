@@ -1,197 +1,32 @@
 {% extends "base.html" %}
-{% load static %}
+{% load i18n %}
+
+{% block title %}{{ method.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto py-8">
-  <h1 class="text-4xl font-bold mb-6">{{ method.name }}</h1>
+<h1>{{ method.name }}</h1>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Formulario -->
-    <div class="bg-white shadow rounded-2xl p-6">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% for field in form %}
-          <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-1">{{ field.label }}:</label>
-            {{ field }}
-            {% if field.help_text %}
-              <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
-            {% endif %}
-            {% if field.errors %}
-              <p class="text-sm text-red-600">{{ field.errors|striptags }}</p>
-            {% endif %}
-          </div>
-        {% endfor %}
-        <button class="px-5 py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600">
-          Solve system
-        </button>
-      </form>
-    </div>
+{% if help_items %}
+  <h3>About this method</h3>
+  <ul>
+    {% for tip in help_items %}<li>{{ tip }}</li>{% endfor %}
+  </ul>
+{% endif %}
 
-    <!-- Ayuda -->
-    <div class="bg-white shadow rounded-2xl p-6">
-      <h2 class="text-2xl font-semibold mb-4">About this method</h2>
-      {% if help_items %}
-        <ul class="list-disc pl-6 space-y-2">
-          {% for h in help_items %}
-            <li>{{ h }}</li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-gray-600">No additional notes.</p>
-      {% endif %}
-    </div>
-  </div>
+<h3>Input</h3>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">{% trans "Solve" %}</button>
+</form>
 
-  <!-- Mensaje de error -->
-  {% if error %}
-    <div class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
-      {{ error }}
-    </div>
-  {% endif %}
+{% if error %}
+  <h3>Error</h3>
+  <pre>{{ error }}</pre>
+{% endif %}
 
-  <!-- Resultados -->
-  {% if solution or L or U or P or iters or steps or console %}
-  <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-    <!-- Solución -->
-    {% if solution %}
-    <div class="bg-white shadow rounded-2xl p-6">
-      <h3 class="text-xl font-semibold mb-3">Solution x</h3>
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr><th class="text-left p-2">Component</th><th class="text-left p-2">Value</th></tr>
-          </thead>
-          <tbody>
-          {% for v in solution %}
-            <tr class="border-t">
-              <td class="p-2">x{{ forloop.counter0 }}</td>
-              <td class="p-2">{{ v }}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Descomposición -->
-    {% if L or U or P %}
-    <div class="bg-white shadow rounded-2xl p-6">
-      <h3 class="text-xl font-semibold mb-3">Decomposition</h3>
-
-      {% if P %}
-      <h4 class="font-semibold mb-1">P:</h4>
-      <div class="overflow-x-auto mb-4">
-        <table class="text-sm">
-          <tbody>
-          {% for row in P %}
-            <tr>{% for v in row %}<td class="px-2 py-1 border">{{ v }}</td>{% endfor %}</tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-
-      {% if L %}
-      <h4 class="font-semibold mb-1">L:</h4>
-      <div class="overflow-x-auto mb-4">
-        <table class="text-sm">
-          <tbody>
-          {% for row in L %}
-            <tr>{% for v in row %}<td class="px-2 py-1 border">{{ v }}</td>{% endfor %}</tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-
-      {% if U %}
-      <h4 class="font-semibold mb-1">U:</h4>
-      <div class="overflow-x-auto">
-        <table class="text-sm">
-          <tbody>
-          {% for row in U %}
-            <tr>{% for v in row %}<td class="px-2 py-1 border">{{ v }}</td>{% endfor %}</tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Iteraciones (si en algún método se cargan) -->
-    {% if iters %}
-    <div class="bg-white shadow rounded-2xl p-6 lg:col-span-2">
-      <h3 class="text-xl font-semibold mb-3">Iterations</h3>
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr>
-              <th class="text-left p-2">k</th>
-              <th class="text-left p-2">x</th>
-              <th class="text-left p-2">residual</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in iters %}
-              <tr class="border-t">
-                <td class="p-2">{{ r.k }}</td>
-                <td class="p-2">[
-                  {% for c in r.x %}
-                    {{ c }}{% if not forloop.last %}, {% endif %}
-                  {% endfor %}
-                  ]</td>
-                <td class="p-2">{{ r.residual }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Salida de consola capturada -->
-    {% if console %}
-    <div class="bg-white shadow rounded-2xl p-6 lg:col-span-2">
-      <h3 class="text-xl font-semibold mb-3">Console output</h3>
-      <pre class="whitespace-pre-wrap text-sm">{{ console }}</pre>
-    </div>
-    {% endif %}
-
-    <!-- Pasos de eliminación (si los hubiese) -->
-    {% if steps %}
-    <div class="bg-white shadow rounded-2xl p-6 lg:col-span-2">
-      <h3 class="text-xl font-semibold mb-3">Elimination steps</h3>
-      <div class="space-y-6">
-        {% for s in steps %}
-          <div>
-            <div class="font-medium text-gray-800 mb-2">{{ s.stage }}</div>
-            {% if s.A %}
-              <div class="overflow-x-auto">
-                <table class="text-sm">
-                  <tbody>
-                  {% for row in s.A %}
-                    <tr>{% for v in row %}<td class="px-2 py-1 border">{{ v }}</td>{% endfor %}</tr>
-                  {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            {% endif %}
-            {% if s.b %}
-              <div class="mt-2 text-sm">b = [
-                {% for v in s.b %}{{ v }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                ]</div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-  </div>
-  {% endif %}
-</div>
+{% if console %}
+  <h3>Console output</h3>
+  <pre>{{ console }}</pre>
+{% endif %}
 {% endblock %}

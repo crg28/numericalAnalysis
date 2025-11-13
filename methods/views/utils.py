@@ -1,35 +1,35 @@
-# methods/utils.py
+# methods/views/utils.py
 from __future__ import annotations
 import io
 import importlib
+import inspect
 from contextlib import redirect_stdout
+
 from sympy import Matrix, sympify, lambdify, symbols
 
-# ================================================================
-# Symbolic compiler for single-var functions f(x)
-# ================================================================
-x = symbols("x")
+
+# -----------------------------
+# Symbolic compiler f(x)
+# -----------------------------
+_x = symbols("x")
 
 def compile_fx(expr_text: str):
-    """Compile text into a numeric single-variable function f(x)."""
+    """Return (callable f(x), sympy_expr) from a user string."""
     expr = sympify(expr_text, convert_xor=True)
-    f = lambdify(x, expr, "numpy")
+    f = lambdify(_x, expr, "numpy")
     return f, expr
 
-# ================================================================
-# Flexible parsing for matrices and vectors
-# ================================================================
+
+# -----------------------------
+# Matrix / vector parsing
+# -----------------------------
 def parse_matrix_flex(text: str) -> Matrix:
-    """
-    Accept Excel-like rows, CSV, or Python-like [[...],[...]] to build a Sympy Matrix.
-    """
     t = (text or "").strip()
     if not t:
         return Matrix([])
     if t.startswith("["):
         from ast import literal_eval
-        data = literal_eval(t)
-        return Matrix(data)
+        return Matrix(literal_eval(t))
 
     rows = []
     for raw in t.splitlines():
@@ -37,8 +37,6 @@ def parse_matrix_flex(text: str) -> Matrix:
         if not raw:
             continue
         parts = [p for p in raw.replace(",", " ").split() if p]
-        if len(parts) == 1 and "," in raw:
-            parts = [p for p in raw.split(",") if p.strip()]
         rows.append([float(x) for x in parts])
 
     if len(rows) == 1 and ";" in t:
@@ -50,13 +48,12 @@ def parse_matrix_flex(text: str) -> Matrix:
 
     return Matrix(rows)
 
+
 def parse_vector_flex(text: str) -> Matrix:
-    """
-    Accepts [1,2,3], newline-separated values, or CSV; returns a column vector.
-    """
     t = (text or "").strip()
     if not t:
         return Matrix([])
+
     if t.startswith("["):
         from ast import literal_eval
         data = literal_eval(t)
@@ -66,18 +63,18 @@ def parse_vector_flex(text: str) -> Matrix:
     if "\n" in t:
         for line in t.splitlines():
             line = line.strip()
-            if not line:
-                continue
-            vals.append(float(line.replace(",", " ").split()[0]))
+            if line:
+                vals.append(float(line.replace(",", " ").split()[0]))
     else:
-        vals = [float(p.strip()) for p in t.replace("\n", " ").replace(";", " ").split(",") if p.strip()]
-        if not vals:
-            vals = [float(p) for p in t.split() if p]
-
+        vals = [
+            float(p)
+            for p in t.replace("\n", " ").replace(";", " ").replace(",", " ").split()
+            if p
+        ]
     return Matrix(vals).reshape(len(vals), 1)
 
+
 def fmt_matrix(M):
-    """Convert Matrix or ndarray to list[list[float]] for templates."""
     if M is None:
         return None
     try:
@@ -85,22 +82,25 @@ def fmt_matrix(M):
     except Exception:
         return [[float(v) for v in row] for row in M]
 
-# ================================================================
-# Session helpers (last inputs)
-# ================================================================
+
+# -----------------------------
+# Session helpers
+# -----------------------------
 def load_last(request, kind: str) -> dict:
     bucket = request.session.get("last_inputs", {})
     return bucket.get(kind, {})
+
 
 def save_last(request, kind: str, cleaned: dict):
     bucket = request.session.get("last_inputs", {})
     bucket[kind] = {k: cleaned.get(k) for k in cleaned}
     request.session["last_inputs"] = bucket
 
-# ================================================================
-# External algorithm invoker (captures stdout)
-# ================================================================
-_CANDIDATE_FUNCS = (
+
+# -----------------------------
+# Invoke LINEAR algorithms
+# -----------------------------
+_LINEAR_FUN_CANDIDATES = (
     "run", "solve", "algorithm", "main", "execute",
     "cholesky_demo", "cholesky_like", "cholesky",
     "crout", "doolittle", "jacobi", "gauss_seidel", "sor",
@@ -108,37 +108,168 @@ _CANDIDATE_FUNCS = (
     "lu", "lu_factorization",
 )
 
-def invoke_algorithm(kind: str, A: Matrix, b: Matrix, extras: dict | None = None) -> str | None:
-    """
-    Import methods.algorithms.{kind} and run its main function,
-    capturing everything printed to stdout.
-    """
+def invoke_linear_algorithm(kind: str, A: Matrix, b: Matrix, extras: dict | None = None) -> str | None:
+    """Import methods/algorithms/<kind>.py and capture EXACT stdout."""
     try:
-        module_name = kind.replace("-", "_")
-        mod = importlib.import_module(f"methods.algorithms.{module_name}")
+        mod = importlib.import_module(f"methods.algorithms.{kind.replace('-', '_')}")
     except Exception:
         return None
 
-    func = None
-    for fname in _CANDIDATE_FUNCS:
-        if hasattr(mod, fname):
-            func = getattr(mod, fname)
+    fn = None
+    for name in _LINEAR_FUN_CANDIDATES:
+        if hasattr(mod, name):
+            fn = getattr(mod, name)
             break
-    if func is None:
+
+    if not fn:
         return None
 
     import numpy as np
     A_np = np.array(fmt_matrix(A), dtype=float)
     b_np = np.array([float(v) for v in list(b)], dtype=float)
 
-    kwargs = {}
-    if extras:
-        kwargs["extras"] = extras
-
     buf = io.StringIO()
     try:
         with redirect_stdout(buf):
-            func(A_np, b_np, **kwargs)
+            if extras:
+                if "extras" in inspect.signature(fn).parameters:
+                    fn(A_np, b_np, extras=extras)
+                else:
+                    fn(A_np, b_np)
+            else:
+                fn(A_np, b_np)
         return buf.getvalue()
     except Exception:
         return buf.getvalue() or None
+
+
+# -----------------------------
+# Invoke ROOT-finding algorithms
+# -----------------------------
+_ROOT_FUN_CANDIDATES = (
+    "run", "solve", "algorithm", "main", "execute",
+    "bisection", "biseccion",
+    "false_position", "regla_falsa",
+    "fixed_point", "punto_fijo",
+    "incremental_search", "busqueda_incremental",
+    "newton", "secant",
+    "multiple_roots", "roots_multiplicity",
+)
+
+def _pick_callable(mod):
+    for name in _ROOT_FUN_CANDIDATES:
+        if hasattr(mod, name):
+            return getattr(mod, name), name
+    return None, None
+
+
+def invoke_root_algorithm(kind: str, expr_text: str, f_lambda, params: dict) -> str | None:
+    """
+    Import methods/algorithms/<kind>.py and attempt multiple signatures.
+    Captures EXACT stdout from the underlying algorithm.
+    """
+    module_name = kind.replace("-", "_")
+
+    # Mapeo especial de nombre de módulo para raíces múltiples
+    if kind == "multiple_roots":
+        module_name = "roots_multiplicity"
+
+    try:
+        mod = importlib.import_module(f"methods.algorithms.{module_name}")
+    except Exception:
+        return None
+
+    # ---- CASO ESPECIAL: múltiples raíces ----
+    if kind == "multiple_roots":
+        if not hasattr(mod, "roots_multiplicity"):
+            return None
+        fn = getattr(mod, "roots_multiplicity")
+
+        x0 = params.get("x0")
+        tol = params.get("tol", 1e-6)
+        n   = params.get("max_iter", 50)
+        df_str  = params.get("df_str", "")
+        d2f_str = params.get("d2f_str", "")
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            fn(x0, expr_text, df_str, d2f_str, tol=tol, max_iter=n)
+        out = buf.getvalue()
+        return out if out else None
+    # -----------------------------------------
+
+    # ---- Resto de métodos (bisección, fija, etc.) ----
+    fn, _ = _pick_callable(mod)
+    if not fn:
+        return None
+
+    # Extract parameters
+    a = params.get("a")
+    b = params.get("b")
+    x0 = params.get("x0")
+    x1 = params.get("x1")
+    delta = params.get("delta")
+    tol = params.get("tol", 1e-6)
+    n   = params.get("max_iter", 50)
+
+    sig = inspect.signature(fn)
+    names = list(sig.parameters.keys())
+
+    call_variants = []
+
+    # Keyword attempt base
+    kw = {"tol": tol, "max_iter": n}
+    if a is not None: kw["a"] = a
+    if b is not None: kw["b"] = b
+    if x0 is not None: kw["x0"] = x0
+    if x1 is not None: kw["x1"] = x1
+    if delta is not None: kw["delta"] = delta
+
+    # Try function or expression name
+    # Aquí añadimos también 'g' para punto fijo
+    for key in ("f", "func", "function", "g"):
+        call_variants.append(({}, {**kw, key: f_lambda}))
+
+    # Y añadimos 'g_str' para las variantes con string
+    for key in ("f_str", "fx", "expr", "expr_str", "g_str"):
+        call_variants.append(({}, {**kw, key: expr_text}))
+
+    # Positional variants
+    pos_args_sets = []
+    if a is not None and b is not None:
+        pos_args_sets.append([expr_text, a, b, tol, n])
+        pos_args_sets.append([f_lambda,  a, b, tol, n])
+
+    if x0 is not None and x1 is not None:
+        pos_args_sets.append([expr_text, x0, x1, tol, n])
+        pos_args_sets.append([f_lambda,  x0, x1, tol, n])
+
+    if x0 is not None and delta is not None:
+        pos_args_sets.append([expr_text, x0, delta, n])
+        pos_args_sets.append([f_lambda,  x0, delta, n])
+
+    # 🔸 Nuevo: patrón típico de punto fijo (g, x0, tol, n)
+    if x0 is not None and a is None and b is None and x1 is None and delta is None:
+        pos_args_sets.append([expr_text, x0, tol, n])
+        pos_args_sets.append([f_lambda,  x0, tol, n])
+
+    for args in pos_args_sets:
+        call_variants.append(({"_pos": args}, {}))
+
+    # Execute and capture
+    buf = io.StringIO()
+    for args_dict, kwargs in call_variants:
+        try:
+            with redirect_stdout(buf):
+                if "_pos" in args_dict:
+                    fn(*args_dict["_pos"])
+                else:
+                    filtered = {k: v for k, v in kwargs.items() if k in names}
+                    fn(**filtered)
+            break  # si una llamada funciona, paramos
+        except Exception:
+            # probamos la siguiente variante
+            pass
+
+    out = buf.getvalue()
+    return out if out else None

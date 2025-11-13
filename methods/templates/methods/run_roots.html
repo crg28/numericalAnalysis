@@ -1,87 +1,37 @@
 {% extends "base.html" %}
-{% load static %}
+{% load i18n %}
+
+{% block title %}{{ method.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto py-8">
-  <h1 class="text-4xl font-bold mb-6">{{ method.name }}</h1>
+<h1>{{ method.name }}</h1>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="bg-white shadow rounded-2xl p-6">
-      <form method="post">
-        {% csrf_token %}
-        {% for field in form %}
-        <div class="mb-4">
-          <label class="block text-gray-700 font-medium mb-1">{{ field.label }}</label>
-          {{ field }}
-          {% if field.help_text %}<p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
-          {% if field.errors %}<p class="text-sm text-red-600">{{ field.errors|striptags }}</p>{% endif %}
-        </div>
-        {% endfor %}
-        <button class="px-5 py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600">
-          Solve
-        </button>
-      </form>
-    </div>
+{% if help_items %}
+  <h3>About this method</h3>
+  <ul>
+    {% for tip in help_items %}<li>{{ tip }}</li>{% endfor %}
+  </ul>
+{% endif %}
 
-    <div class="bg-white shadow rounded-2xl p-6">
-      <h2 class="text-2xl font-semibold mb-3">About this method</h2>
-      {% if help_items %}
-      <ul class="list-disc pl-6 space-y-2">
-        {% for h in help_items %}<li>{{ h }}</li>{% endfor %}
-      </ul>
-      {% else %}
-      <p class="text-gray-600">No additional notes.</p>
-      {% endif %}
-    </div>
-  </div>
+<h3>Input</h3>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">{% trans "Solve" %}</button>
+</form>
 
-  {% if error %}
-  <div class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">{{ error }}</div>
-  {% endif %}
+{% if error %}
+  <h3>Error</h3>
+  <pre>{{ error }}</pre>
+{% endif %}
 
-  {% if root or table or plot_data_uri %}
-  <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {% if root %}
-    <div class="bg-white shadow rounded-2xl p-6">
-      <h3 class="text-xl font-semibold mb-3">Root</h3>
-      <p class="text-sm">x* ≈ {{ root }}</p>
-    </div>
-    {% endif %}
+{% if plot_data_uri %}
+  <h3>Function plot</h3>
+  <img src="{{ plot_data_uri }}" alt="plot" />
+{% endif %}
 
-    {% if plot_data_uri %}
-    <div class="bg-white shadow rounded-2xl p-6">
-      <h3 class="text-xl font-semibold mb-3">Graph</h3>
-      <img src="{{ plot_data_uri }}" alt="plot" class="w-full h-auto"/>
-    </div>
-    {% endif %}
-
-    {% if table %}
-    <div class="bg-white shadow rounded-2xl p-6 lg:col-span-2">
-      <h3 class="text-xl font-semibold mb-3">Iterations</h3>
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr>
-              {% for k in table.0.keys %}
-                <th class="text-left p-2">{{ k }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in table %}
-            <tr class="border-t">
-              {% for v in r.values %}
-                <td class="p-2">{{ v }}</td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
+{% if console %}
+  <h3>Console output</h3>
+  <pre>{{ console }}</pre>
+{% endif %}
 {% endblock %}
-
