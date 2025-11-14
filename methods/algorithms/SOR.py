@@ -1,10 +1,12 @@
-# sor.py
+# methods/algorithms/SOR.py
 import numpy as np
+
 
 def spectral_radius(T: np.ndarray) -> float:
     """Return max |eigenvalue| of T."""
     vals, _ = np.linalg.eig(T)
     return float(np.max(np.abs(vals)))
+
 
 def build_iteration_matrices(A, b, w):
     """
@@ -25,6 +27,7 @@ def build_iteration_matrices(A, b, w):
     T = inv_term @ ((1.0 - w) * D + w * U)
     C = w * inv_term @ b
     return T, C
+
 
 def sor_run(A, b, x0, w, tol, nmax):
     """
@@ -56,6 +59,7 @@ def sor_run(A, b, x0, w, tol, nmax):
     rho = spectral_radius(T)
     return T, C, rho, history, converged
 
+
 def pretty_print_results(T, C, rho, history):
     print("\nSOR (relaxation)\n")
     print("Results:\n")
@@ -80,6 +84,43 @@ def pretty_print_results(T, C, rho, history):
         err_str = "   -" if err is None else f"{err:.1e}"
         x_str = " ".join(f"{xi:.6f}" for xi in xvals)
         print(f"| {it:>4d} | {err_str:>8s} | {x_str}")
+
+
+def sor(A, b, x0=None, w=1.0, tol=1e-7, max_iter=100):
+    """
+    High-level SOR wrapper used by the Django view.
+
+    Parameters
+    ----------
+    A : array_like
+        Coefficient matrix.
+    b : array_like
+        Right-hand-side vector.
+    x0 : array_like or None
+        Initial guess. If None, uses zeros.
+    w : float
+        Relaxation factor (0 < w < 2).
+    tol : float
+        Tolerance for stopping criterion.
+    max_iter : int
+        Maximum number of iterations.
+    """
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
+
+    if x0 is None:
+        x0 = np.zeros_like(b, dtype=float)
+    else:
+        x0 = np.array(x0, dtype=float)
+
+    T, C, rho, history, converged = sor_run(A, b, x0, w, tol, max_iter)
+
+    pretty_print_results(T, C, rho, history)
+
+    print("\nConverged:", converged)
+    print(f"Stopped with Tol = {tol}")
+    print(f"Iterations recorded: {history[-1]['iter']}")
+
 
 # -------- Fixed data (same as the other methods) --------
 if __name__ == "__main__":

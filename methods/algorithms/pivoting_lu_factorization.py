@@ -25,7 +25,7 @@ def back_substitution(U, y):
         x[i] = (y[i] - s) / U[i, i]
     return x
 
-def lu_parcial_demo(A, b):
+def pivoting_lu_factorization(A, b):
     """
     LU con pivoteo parcial (PA = LU), mostrando:
       - Etapas (A transformándose por eliminación)
@@ -118,4 +118,4 @@ if __name__ == "__main__":
     ]
     b = [1, 1, 1, 1]
 
-    lu_parcial_demo(A, b)
+    pivoting_lu_factorization(A, b)

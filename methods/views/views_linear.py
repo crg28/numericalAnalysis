@@ -6,12 +6,13 @@ from sympy import Matrix
 
 from ..models import Method
 from ..forms import AbForm, IterativeForm, SorForm
-from .utils import (
+from .linear_utils import (
     parse_matrix_flex,
     parse_vector_flex,
     fmt_matrix,
-    invoke_linear_algorithm,  # <- correct helper name
+    invoke_linear_algorithm,
 )
+
 
 # ---------- help text ----------
 HELP_TEXT = {
@@ -36,6 +37,7 @@ HELP_TEXT = {
     "lu_simple": ["LU factorization without pivoting."],
     "lu_pivot": ["LU factorization with pivoting."],
 }
+
 
 def method_run_linear(request, slug):
     """
@@ -76,10 +78,14 @@ def method_run_linear(request, slug):
             if kind in ("jacobi", "gauss_seidel", "sor"):
                 extras["tol"] = float(form.cleaned_data.get("tol", 1e-6))
                 extras["max_iter"] = int(form.cleaned_data.get("max_iter", 50))
+
                 x0_vec = parse_vector_flex(form.cleaned_data.get("x0") or "")
                 extras["x0"] = (
-                    [float(v) for v in list(x0_vec)] if x0_vec.shape[0] else [0.0] * A.shape[0]
+                    [float(v) for v in list(x0_vec)]
+                    if x0_vec.shape[0]
+                    else [0.0] * A.shape[0]
                 )
+
             if kind == "sor":
                 extras["w"] = float(form.cleaned_data.get("w", 1.0))
 
@@ -123,6 +129,7 @@ def method_run_linear(request, slug):
                         P = M.eye(A.shape[0])
                         for i, j in enumerate(perm):
                             P.row_swap(i, j)
+
                     ctx["L"] = fmt_matrix(L)
                     ctx["U"] = fmt_matrix(U)
                     ctx["P"] = fmt_matrix(P) if P is not None else None

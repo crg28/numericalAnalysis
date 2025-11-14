@@ -1,106 +1,142 @@
+# methods/algorithms/jacobi.py
 import numpy as np
 
-def radio_espectral(T):
+
+def spectral_radius(T: np.ndarray) -> float:
     """
-    Calcula el radio espectral de una matriz T (el máximo de los valores absolutos
-    de sus eigenvalores).
+    Compute the spectral radius of T (maximum absolute eigenvalue).
     """
     try:
-        eigenvalores = np.linalg.eigvals(T)
-        return np.max(np.abs(eigenvalores))
+        eigenvalues = np.linalg.eigvals(T)
+        return float(np.max(np.abs(eigenvalues)))
     except np.linalg.LinAlgError:
-        return np.nan # En caso de error de convergencia
+        return np.nan  # In case of convergence error
 
-def jacobi_matricial(A, b, x0, tolerancia, niter):
-    
-    # 6 decimales
-    np.set_printoptions(precision=6, suppress=True, floatmode='fixed')
-    
-    iteracion = 0
-    error = 1 # Error inicial
-    
-    # Asegurarnos de que son arrays de NumPy tipo float
+
+def jacobi_core(A, b, x0, tol, niter):
+    """
+    Core Jacobi implementation:
+        A: coefficient matrix
+        b: RHS vector
+        x0: initial guess
+        tol: tolerance
+        niter: maximum number of iterations
+
+    Prints the iteration table and returns (x, rho).
+    """
+    # 6 decimal places
+    np.set_printoptions(precision=6, suppress=True, floatmode="fixed")
+
+    iteration = 0
+    error = 1.0  # initial error
+
+    # Ensure numpy arrays
     A = np.array(A, dtype=float)
-    b = np.array(b, dtype=float).T
-    x0 = np.array(x0, dtype=float).T
-    
-    # Descomposición y cálculo de T y C
-    
-    # Descomposición de la matriz A en D, L y U
+    b = np.array(b, dtype=float).reshape(-1, 1)
+    x0 = np.array(x0, dtype=float).reshape(-1, 1)
+
+    # Decompose A into D, L, U
     D = np.diag(np.diagonal(A))
     L = -np.tril(A, -1)
-    U = -np.triu(A, 1)
-    
-    # Inversa de D 
-    inv_D = np.diag(1 / np.diagonal(A))
+    U = -np.triu(A,  1)
 
-    # Matriz de transición de Jacobi
+    # Inverse of D
+    inv_D = np.diag(1.0 / np.diagonal(A))
+
+    # Jacobi iteration matrix T and vector C
     T = inv_D @ (L + U)
-    
-    # Vector C de Jacobi
     C = inv_D @ b
-    
-    # Radio espectral
-    ro = radio_espectral(T)
-    
+
+    # Spectral radius
+    rho = spectral_radius(T)
+
     print("Jacobi\n")
-    print("Resultados:\n")
+    print("Results:\n")
+
     print("T:")
-    # Imprimir la matriz T
-    print(T) 
-    
+    print(T)
+
     print("\nC:")
-    # Imprimir el vector C
-    print(C) 
-    
-    print(f"\nradio espectral:\n{ro:.6f}\n")
+    print(C)
 
-    # Imprimir la tabla de iteraciones
+    print(f"\nSpectral radius:\n{rho:.6f}\n")
 
-    print("| iter |     E      | ")
-    print("-" * (50)) # Separador
+    # Iteration table
+    print("| iter |     E      | x components...")
+    print("-" * 60)
 
-    # Imprimir la fila de la iteración 0
-    x_str = "  ".join([f"{val:.6f}" for val in x0])
-    print(f"|  {iteracion: >3} | {'-': >10} | {x_str}")
+    # Iteration 0
+    x_str = "  ".join(f"{val:.6f}" for val in x0.flatten())
+    print(f"|  {iteration:>3} | {'-':>10} | {x_str}")
 
-    # Bucle de iteración
-    
-    while error > tolerancia and iteracion < niter:
-        
-        x1 = T @ x0 + C # Fórmula de Jacobi
-        
-        # Usamos la norma infinita (error absoluto) como en tu función _DC
-        error = np.linalg.norm(x1 - x0, np.inf) 
-        
-        x0 = x1 # Actualizamos para la siguiente iteración
-        iteracion += 1
+    # Iteration loop
+    while error > tol and iteration < niter:
+        x1 = T @ x0 + C  # Jacobi update
+        error = float(np.linalg.norm(x1 - x0, np.inf))
 
-        # Imprimir la fila de la iteración actual
-        x_str = "  ".join([f"{val:.6f}" for val in x0])
-        # Formateamos el error a 1 decimal en notación científica
-        print(f"| {iteracion: >4} | {error: >10.1e} | {x_str}")
+        x0 = x1
+        iteration += 1
 
-    # Impresión de resultados finales
-    
-    print("-" * (50)) # Separador final
-    if error < tolerancia:
-        print(f"\nJacobi matricial: Solución encontrada en {iteracion} iteraciones.")
-        print(f"Solución: {x0}")
+        x_str = "  ".join(f"{val:.6f}" for val in x0.flatten())
+        print(f"| {iteration:>4} | {error:>10.1e} | {x_str}")
+
+    print("-" * 60)
+    if error < tol:
+        print(f"\nJacobi method: solution found in {iteration} iterations.")
+        print("Solution vector x:")
+        for val in x0.flatten():
+            print(f"{val:.6f}")
     else:
-        print(f"\nJacobi matricial: Fracasó en {niter} iteraciones.")
-        
-    return x0, ro
+        print(f"\nJacobi method: failed to converge in {niter} iterations.")
 
-A = np.array([
-    [4, -1, 0, 3],
-    [1, 15.5, 3, 8],
-    [0, -1.3, -4, 1.1],
-    [14, 5, -2, 30]
-])
-    
-b = np.array([1, 1, 1, 1])
- 
-x0 = np.array([0, 0, 0, 0])
+    return x0.flatten(), rho
 
-jacobi_matricial(A, b, x0, tolerancia=1e-7, niter=60)
+
+# ------------------------------------------------------
+# Public entry point for Django
+# ------------------------------------------------------
+def jacobi(A, b, x0=None, tol=1e-7, max_iter=60):
+    """
+    Public Jacobi function used by the Django view.
+
+    Parameters
+    ----------
+    A : array_like
+        Coefficient matrix.
+    b : array_like
+        Right-hand side vector.
+    x0 : array_like or None
+        Initial guess. If None, uses zeros.
+    tol : float
+        Tolerance for stopping criterion.
+    max_iter : int
+        Maximum number of iterations.
+    """
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
+
+    if x0 is None:
+        x0 = np.zeros_like(b, dtype=float)
+    else:
+        x0 = np.array(x0, dtype=float)
+
+    x, rho = jacobi_core(A, b, x0, tol, max_iter)
+
+    # Optionally, we could print a short summary here (already printed inside core).
+    return x, rho
+
+
+# ------------------------------------------------------
+# Legacy test (local run)
+# ------------------------------------------------------
+if __name__ == "__main__":
+    A = np.array([
+        [4,  -1,  0,  3],
+        [1, 15.5, 3,  8],
+        [0,  -1.3, -4, 1.1],
+        [14,  5, -2, 30],
+    ])
+    b = np.array([1, 1, 1, 1])
+    x0 = np.array([0, 0, 0, 0])
+
+    jacobi(A, b, x0=x0, tol=1e-7, max_iter=60)

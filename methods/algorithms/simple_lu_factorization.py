@@ -25,7 +25,7 @@ def back_substitution(U, y):
         x[i] = (y[i] - s) / U[i, i]
     return x
 
-def gaussian_elimination_lu(A, b):
+def lu_factorization(A, b):
     """
     Simple Gaussian elimination (no pivoting) that constructs L and U step-by-step
     and prints stages exactly like the expected output.
@@ -101,4 +101,4 @@ if __name__ == "__main__":
     ]
     b = [1, 1, 1, 1]
 
-    gaussian_elimination_lu(A, b)
+    lu_factorization(A, b)

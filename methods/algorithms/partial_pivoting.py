@@ -1,5 +1,4 @@
-# gaussian_elimination_partial_pivoting.py
-
+# partial_pivoting.py
 # === Gaussian Elimination with PARTIAL Pivoting ===
 
 def exchange_rows(A, r1, r2):
@@ -7,10 +6,12 @@ def exchange_rows(A, r1, r2):
     if r1 != r2:
         A[r1], A[r2] = A[r2], A[r1]
 
+
 def print_matrix(A, step):
     print(f"\nStep {step}\n")
     for row in A:
         print(" ".join(f"{v: .6f}" for v in row))
+
 
 def back_substitution(A, n, tol=1e-12):
     """Perform back substitution on an upper-triangular augmented matrix."""
@@ -25,9 +26,11 @@ def back_substitution(A, n, tol=1e-12):
         x[i] = (A[i][n] - s) / piv
     return x
 
+
 def partial_pivoting(A, n, tol=1e-12):
-    """Gaussian elimination with partial pivoting."""
-    print("Gaussian elimination with partial pivoting\n\nResults:")
+    """Gaussian elimination with partial pivoting on an augmented matrix [A|b]."""
+    print("Gaussian elimination with partial pivoting\n")
+    print("Results:")
     print_matrix(A, step=0)
 
     for k in range(n - 1):
@@ -48,6 +51,49 @@ def partial_pivoting(A, n, tol=1e-12):
         print_matrix(A, step=k + 1)
     return A
 
+
+# ------------------------------------------------------
+# 🔹 PUBLIC ENTRY POINT FOR DJANGO
+# ------------------------------------------------------
+def gaussian_elimination_partial_pivoting(A, b):
+    """
+    Public entry point used by Django for partial pivoting.
+
+    Parameters
+    ----------
+    A : array_like
+        Coefficient matrix.
+    b : array_like
+        Right-hand side vector.
+
+    Behavior:
+      - Builds the augmented matrix [A | b]
+      - Performs Gaussian elimination with partial pivoting
+      - Performs back substitution
+      - Prints all intermediate steps and the final solution.
+    """
+    # Convert to pure Python floats
+    A = [list(map(float, row)) for row in A]
+    b = list(map(float, b))
+
+    n = len(A)
+    # Build augmented matrix [A | b]
+    Aaug = [A[i] + [b[i]] for i in range(n)]
+
+    try:
+        U = partial_pivoting(Aaug, n)
+        x = back_substitution(U, n)
+        print("\nAfter applying back substitution\n")
+        print("Solution vector x:")
+        for val in x:
+            print(f"{val:.6f}")
+    except Exception as e:
+        print(f"\nError: {e}")
+
+
+# ------------------------------------------------------
+# Legacy local test (ignored by Django)
+# ------------------------------------------------------
 def main():
     # ---------- Fixed test system (no input) ----------
     Acoef = [
@@ -65,12 +111,13 @@ def main():
     try:
         U = partial_pivoting(Aaug, n)
         x = back_substitution(U, n)
-        print("\n\nAfter applying back substitution\n")
+        print("\nAfter applying back substitution\n")
         print("x:")
         for val in x:
             print(f"{val:.6f}")
     except Exception as e:
         print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()

@@ -20,68 +20,6 @@ def compile_fx(expr_text: str):
     return f, expr
 
 
-# -----------------------------
-# Matrix / vector parsing
-# -----------------------------
-def parse_matrix_flex(text: str) -> Matrix:
-    t = (text or "").strip()
-    if not t:
-        return Matrix([])
-    if t.startswith("["):
-        from ast import literal_eval
-        return Matrix(literal_eval(t))
-
-    rows = []
-    for raw in t.splitlines():
-        raw = raw.strip()
-        if not raw:
-            continue
-        parts = [p for p in raw.replace(",", " ").split() if p]
-        rows.append([float(x) for x in parts])
-
-    if len(rows) == 1 and ";" in t:
-        rows = []
-        for seg in t.split(";"):
-            parts = [p for p in seg.replace(",", " ").split() if p]
-            if parts:
-                rows.append([float(x) for x in parts])
-
-    return Matrix(rows)
-
-
-def parse_vector_flex(text: str) -> Matrix:
-    t = (text or "").strip()
-    if not t:
-        return Matrix([])
-
-    if t.startswith("["):
-        from ast import literal_eval
-        data = literal_eval(t)
-        return Matrix(data).reshape(len(data), 1)
-
-    vals = []
-    if "\n" in t:
-        for line in t.splitlines():
-            line = line.strip()
-            if line:
-                vals.append(float(line.replace(",", " ").split()[0]))
-    else:
-        vals = [
-            float(p)
-            for p in t.replace("\n", " ").replace(";", " ").replace(",", " ").split()
-            if p
-        ]
-    return Matrix(vals).reshape(len(vals), 1)
-
-
-def fmt_matrix(M):
-    if M is None:
-        return None
-    try:
-        return [[float(v) for v in row] for row in list(M.tolist())]
-    except Exception:
-        return [[float(v) for v in row] for row in M]
-
 
 # -----------------------------
 # Session helpers
@@ -95,52 +33,6 @@ def save_last(request, kind: str, cleaned: dict):
     bucket = request.session.get("last_inputs", {})
     bucket[kind] = {k: cleaned.get(k) for k in cleaned}
     request.session["last_inputs"] = bucket
-
-
-# -----------------------------
-# Invoke LINEAR algorithms
-# -----------------------------
-_LINEAR_FUN_CANDIDATES = (
-    "run", "solve", "algorithm", "main", "execute",
-    "cholesky_demo", "cholesky_like", "cholesky",
-    "crout", "doolittle", "jacobi", "gauss_seidel", "sor",
-    "gaussian_elimination", "partial_pivoting", "total_pivoting",
-    "lu", "lu_factorization",
-)
-
-def invoke_linear_algorithm(kind: str, A: Matrix, b: Matrix, extras: dict | None = None) -> str | None:
-    """Import methods/algorithms/<kind>.py and capture EXACT stdout."""
-    try:
-        mod = importlib.import_module(f"methods.algorithms.{kind.replace('-', '_')}")
-    except Exception:
-        return None
-
-    fn = None
-    for name in _LINEAR_FUN_CANDIDATES:
-        if hasattr(mod, name):
-            fn = getattr(mod, name)
-            break
-
-    if not fn:
-        return None
-
-    import numpy as np
-    A_np = np.array(fmt_matrix(A), dtype=float)
-    b_np = np.array([float(v) for v in list(b)], dtype=float)
-
-    buf = io.StringIO()
-    try:
-        with redirect_stdout(buf):
-            if extras:
-                if "extras" in inspect.signature(fn).parameters:
-                    fn(A_np, b_np, extras=extras)
-                else:
-                    fn(A_np, b_np)
-            else:
-                fn(A_np, b_np)
-        return buf.getvalue()
-    except Exception:
-        return buf.getvalue() or None
 
 
 # -----------------------------
