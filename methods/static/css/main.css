@@ -235,3 +235,18 @@ a.btn{ text-decoration:none; }
 }
 .note h4{ margin:0 0 6px 0; }
 .note p{ color:#555; margin:0 0 10px 0; }
+
+.bb-header-graph-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  font-size: 1.4rem;
+  text-decoration: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.bb-header-graph-btn:hover {
+  transform: scale(1.08);
+  filter: brightness(1.15);
+}

@@ -56,3 +56,25 @@ class IterativeForm(forms.Form):
 class SorForm(IterativeForm):
     """SOR = IterativeForm + w."""
     w = forms.FloatField(label='ω (relaxation factor)', initial=1.0)
+
+class GraphForm(forms.Form):
+    fx = forms.CharField(
+        label="f(x)",
+        help_text="Example: x**2 - 3*x + 2 or sin(x)",
+        widget=forms.TextInput(attrs={"placeholder": "f(x)"})
+    )
+    x_min = forms.FloatField(
+        label="x min",
+        initial=-5.0
+    )
+    x_max = forms.FloatField(
+        label="x max",
+        initial=5.0
+    )
+    n_points = forms.IntegerField(
+        label="Number of points",
+        initial=200,
+        min_value=10,
+        max_value=2000,
+        help_text="Number of sample points in the interval"
+    )

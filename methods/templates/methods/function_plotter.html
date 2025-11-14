@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Function Plotter{% endblock %}
+
+{% block extra_css %}
+<style>
+  .plotter-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .plotter-sidebar {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .plotter-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .plotter-input-bullet {
+    font-weight: 600;
+  }
+
+  .plotter-input-row input {
+    flex: 1;
+  }
+
+  .plotter-help {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.75rem;
+  }
+
+  /* 🔹 Caja de avisos y sugerencias */
+  .plotter-hints {
+    margin-top: 0.75rem;
+    font-size: 0.83rem;
+    background: #fff6e5;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #ffd391;
+  }
+
+  .plotter-hints strong {
+    font-weight: 600;
+  }
+
+  .plotter-hints code {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.03);
+    padding: 0 0.2rem;
+    border-radius: 4px;
+  }
+
+  .plotter-graph-wrapper {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  @media (max-width: 900px) {
+    .plotter-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Function Plotter</h1>
+
+<div class="plotter-layout">
+  <!-- Sidebar -->
+  <aside class="plotter-sidebar">
+
+    <div class="plotter-input-row">
+      <span class="plotter-input-bullet">f(x) =</span>
+      <input id="fx-input" type="text" placeholder="e.g. sin(x), x^3 - 2*x, exp(-x)*cos(3x)">
+    </div>
+
+    <button id="plot-btn" class="btn btn-primary" style="margin-top: 1rem;">
+      Plot
+    </button>
+
+    <p class="plotter-help">
+      Domain is automatically taken as [-10, 10].
+    </p>
+
+    <!-- Caja de sugerencias -->
+    <div class="plotter-hints">
+      <strong>Tips for writing functions:</strong>
+      <ul style="margin: 0.3rem 0 0 1rem; padding: 0;">
+        <li>Exponential: <code>exp(x)</code> (instead of <code>e^x</code>).</li>
+        <li>Natural log: <code>log(x)</code> (not <code>ln(x)</code>).</li>
+        <li>Square root: <code>sqrt(x)</code>.</li>
+        <li>Absolute value: <code>abs(x)</code>.</li>
+        <li><code>sin(x)^2</code> instead of <code>sin^2(x)</code>.</li>
+        <li>Use <code>^</code> for powers (e.g. <code>x^3 - 2*x</code>).</li>
+      </ul>
+    </div>
+
+  </aside>
+
+  <!-- Graph -->
+  <section class="plotter-graph-wrapper">
+    <div id="plotter-graph" style="width: 100%; height: 65vh;"></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const fxInput = document.getElementById("fx-input");
+    const plotBtn = document.getElementById("plot-btn");
+    const graphDiv = document.getElementById("plotter-graph");
+
+    function plotFunction() {
+        const expr = fxInput.value.trim();
+        if (!expr) return;
+
+        let f;
+        try {
+            f = math.compile(expr);
+        } catch (err) {
+            alert("Invalid expression. Check your syntax.");
+            return;
+        }
+
+        const xs = math.range(-10, 10, 0.05).toArray();
+        let ys = [];
+
+        try {
+            ys = xs.map(x => {
+                const y = f.evaluate({ x });
+                return (isFinite(y) ? y : null);
+            });
+        } catch (error) {
+            alert("Error evaluating function.");
+            return;
+        }
+
+        Plotly.newPlot(graphDiv, [{
+            x: xs,
+            y: ys,
+            mode: "lines",
+            line: { color: "#007bff", width: 2 }
+        }], {
+            margin: { t: 10, r: 10, l: 40, b: 40 },
+            xaxis: { title: "x", zeroline: true },
+            yaxis: { title: "f(x)", zeroline: true }
+        });
+    }
+
+    plotBtn.addEventListener("click", plotFunction);
+});
+</script>
+{% endblock %}

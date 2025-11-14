@@ -31,5 +31,16 @@
     {% endfor %}
   </div>
 
-  <a href="{% url 'methods:list' %}" class="btn btn-primary lg">See more</a>
+  {# 🔹 Tarjeta independiente para el graficador #}
+  <div class="card" style="margin-top: 2rem;">
+    <h3>Function Plotter</h3>
+    <p>Graph any function f(x) interactively.</p>
+    <a href="{% url 'methods:function_plotter' %}" class="btn btn-primary">
+      Go to plotter
+    </a>
+  </div>
+
+  <a href="{% url 'methods:list' %}" class="btn btn-primary lg" style="margin-top: 1rem;">
+    See more
+  </a>
 {% endblock %}
