@@ -19,7 +19,7 @@
     "model": "methods.category",
     "pk": 3,
     "fields": {
-      "name": "Lagrange Interpolation",
+      "name": "Interpolation",
       "slug": "interpolation"
     }
   },
