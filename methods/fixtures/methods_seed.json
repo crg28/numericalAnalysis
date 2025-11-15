@@ -34,7 +34,8 @@
       "description": "Find roots by partitioning the interval.",
       "category": 1,
       "is_featured": true,
-      "kind": "bisection"
+      "kind": "bisection",
+      "image": "methods/mat1.jpeg" 
     }
   },
   {
