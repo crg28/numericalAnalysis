@@ -19,14 +19,14 @@ class AbForm(forms.Form):
         label='Matrix A',
         widget=forms.Textarea(attrs={
             'rows': 6,
-            'placeholder': 'Ejemplos:\n1 2 3\n4 5 6\n7 8 10\n\nó\n1,2,3; 4,5,6; 7,8,10\nó\n[[1,2],[3,4]]'
+            'placeholder': 'Examples:\n1 2 3\n4 5 6\n7 8 10\n\nó\n1,2,3; 4,5,6; 7,8,10\nó\n[[1,2],[3,4]]'
         })
     )
     b = forms.CharField(
         label='Vector b',
         widget=forms.Textarea(attrs={
             'rows': 3,
-            'placeholder': 'Ejemplos:\n1\n0\n3\n\nó\n1,0,3\nó\n[1,0,3]'
+            'placeholder': 'Examples:\n1\n0\n3\n\nó\n1,0,3\nó\n[1,0,3]'
         })
     )
 

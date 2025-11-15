@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load i18n static %}
+{% extends "base.html" %}
 {% block title %}{{ category.name }}{% endblock %}
 {% block content %}
 <h1>{{ category.name }}</h1>
@@ -14,7 +14,7 @@
       </div>
     </a>
   {% empty %}
-    <p>{% trans "No methods in this category." %}</p>
+    <p>{% "No methods in this category." %}</p>
   {% endfor %}
 </div>
 {% endblock %}
