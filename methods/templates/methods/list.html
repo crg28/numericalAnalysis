@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load i18n static %}
 {% block title %}{% trans "All methods" %}{% endblock %}
 {% block content %}
 <h1>{% trans "All methods" %}</h1>
@@ -14,7 +14,7 @@
     </div>
   </a>
   {% empty %}
-    <p>{% "No methods found." %}</p>
+    <p>{% trans "No methods found." %}</p>
   {% endfor %}
 </div>
 {% endblock %}
