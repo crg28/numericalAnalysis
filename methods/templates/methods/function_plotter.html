@@ -23,10 +23,12 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin-top: 0.5rem;
   }
 
   .plotter-input-bullet {
     font-weight: 600;
+    min-width: 48px;
   }
 
   .plotter-input-row input {
@@ -39,7 +41,6 @@
     margin-top: 0.75rem;
   }
 
-  /* 🔹 Caja de avisos y sugerencias */
   .plotter-hints {
     margin-top: 0.75rem;
     font-size: 0.83rem;
@@ -83,9 +84,21 @@
   <!-- Sidebar -->
   <aside class="plotter-sidebar">
 
+    <!-- f(x) -->
     <div class="plotter-input-row">
       <span class="plotter-input-bullet">f(x) =</span>
       <input id="fx-input" type="text" placeholder="e.g. sin(x), x^3 - 2*x, exp(-x)*cos(3x)">
+    </div>
+
+    <!-- Dominio: x min / x max -->
+    <div class="plotter-input-row">
+      <span class="plotter-input-bullet">x min</span>
+      <input id="x-min" type="number" step="any" value="-10">
+    </div>
+
+    <div class="plotter-input-row">
+      <span class="plotter-input-bullet">x max</span>
+      <input id="x-max" type="number" step="any" value="10">
     </div>
 
     <button id="plot-btn" class="btn btn-primary" style="margin-top: 1rem;">
@@ -93,7 +106,7 @@
     </button>
 
     <p class="plotter-help">
-      Domain is automatically taken as [-10, 10].
+      Default domain is [-10, 10]. You can change it using <strong>x min</strong> and <strong>x max</strong>.
     </p>
 
     <!-- Caja de sugerencias -->
@@ -121,14 +134,17 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const fxInput = document.getElementById("fx-input");
-    const plotBtn = document.getElementById("plot-btn");
-    const graphDiv = document.getElementById("plotter-graph");
+    const fxInput   = document.getElementById("fx-input");
+    const xMinInput = document.getElementById("x-min");   // 🔹 nuevo
+    const xMaxInput = document.getElementById("x-max");   // 🔹 nuevo
+    const plotBtn   = document.getElementById("plot-btn");
+    const graphDiv  = document.getElementById("plotter-graph");
 
     function plotFunction() {
         const expr = fxInput.value.trim();
         if (!expr) return;
 
+        // 1. Compilar la función
         let f;
         try {
             f = math.compile(expr);
@@ -137,9 +153,27 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const xs = math.range(-100, 100, 0.005).toArray();
-        let ys = [];
+        // 2. Leer dominio seleccionado por el usuario
+        let xMin = parseFloat(xMinInput.value);
+        let xMax = parseFloat(xMaxInput.value);
 
+        if (isNaN(xMin) || isNaN(xMax)) {
+            alert("Please enter valid numeric values for x min and x max.");
+            return;
+        }
+
+        if (xMin >= xMax) {
+            alert("x min must be strictly less than x max.");
+            return;
+        }
+
+        // 3. Construir el rango de x en el dominio elegido
+        const nPoints = 400;  // puedes ajustar este valor si quieres más/menos resolución
+        const step = (xMax - xMin) / nPoints;
+        const xs = math.range(xMin, xMax, step).toArray();
+
+        // 4. Evaluar f(x) en cada punto
+        let ys = [];
         try {
             ys = xs.map(x => {
                 const y = f.evaluate({ x });
@@ -150,6 +184,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        // 5. Dibujar con Plotly
         Plotly.newPlot(graphDiv, [{
             x: xs,
             y: ys,
@@ -163,6 +198,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     plotBtn.addEventListener("click", plotFunction);
+
+    // Opcional: plotea algo por defecto al cargar, por ejemplo f(x)=x
+    // fxInput.value = "x";
+    // plotFunction();
 });
 </script>
 {% endblock %}
