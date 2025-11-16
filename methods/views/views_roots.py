@@ -227,7 +227,6 @@ def method_run_roots(request, slug):
                     params["d2f_str"] = d2f_text
 
             elif kind == "newton":
-                # f(x), f'(x) (preferred), x0, tol, max_iter
                 expr_text = cleaned.get("fx", "") or ""
                 f_lambda, _ = compile_fx(expr_text)
                 df_text = cleaned.get("dfx", "")  # if the form already asks for it
@@ -237,7 +236,7 @@ def method_run_roots(request, slug):
                     "max_iter": int(cleaned.get("max_iter", 50)),
                 }
                 if df_text:
-                    params["df_str"] = df_text  # many modules accept derivative as string
+                    params["df_str"] = df_text
 
             elif kind == "secant":
                 # f(x), x0, x1, tol, max_iter
