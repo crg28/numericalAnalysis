@@ -56,6 +56,7 @@ def vandermonde(x, y):
     print("\nPolinomio:\n")
     print(polynomial_string(a))
     print()
+    return a
 
 if __name__ == "__main__":
     # Data from your table

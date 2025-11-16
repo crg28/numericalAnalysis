@@ -1,4 +1,77 @@
-# methods/views/views_interp.py
+from django.http import HttpResponse
+from .utils_interp import run_linear_spline,run_quadratic_spline,run_cubic_spline, run_lagrange, run_vandermonde, run_newton_interpolation
+
+def method_run_interp(request, slug):
+
+    if slug == "spline-linear":
+        return run_linear_spline(request,slug)
+
+    if slug == "spline-quadratic":
+        return run_quadratic_spline(request,slug)
+    
+    if slug == "spline":
+        return run_cubic_spline(request,slug)
+    
+    if slug == "lagrange":
+        return run_lagrange(request,slug) 
+    
+    if slug == "vandermonde":
+        return run_vandermonde(request,slug)
+    
+    if slug == "newton-interpolation":
+        return run_newton_interpolation(request,slug)
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+""" # methods/views/views_interp.py
 from __future__ import annotations
 from django.shortcuts import render, get_object_or_404
 from django import forms
@@ -38,3 +111,4 @@ def method_run_interp(request, slug):
             ctx["error"] = str(e)
 
     return render(request, "methods/run_interp.html", ctx)
+ """

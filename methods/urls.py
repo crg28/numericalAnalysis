@@ -17,7 +17,7 @@ urlpatterns = [
     path("linear/<slug:slug>/", linear.method_run_linear, name="linear_run"),
 
     # Interp (cuando lo tengas)
-    # path("interp/<slug:slug>/", interp.method_run_interp, name="interp_run"),
+    path("interp/<slug:slug>/", interp.method_run_interp, name="interp_run"),
     path("search/", core.method_list, name="search_products"),
     path("m/<slug:slug>/", core.legacy_method_entrypoint, name="detail"),  # ← alias para 'methods:detail'
     path("list/", core.method_list, name="list"),         
@@ -43,7 +43,7 @@ urlpatterns = [
     path("linear/<slug:slug>/", linear.method_run_linear, name="linear_run"),
 
     # Interpolation (enable when ready)
-    # path("interp/<slug:slug>/", interp.method_run_interp, name="interp_run"),
+    path("interp/<slug:slug>/", interp.method_run_interp, name="interp_run"),
 
     # Search/list aliases for templates
     path("search/", core.method_list, name="search_products"),

@@ -59,7 +59,7 @@ def newtonint(x, y, x_real=None, y_real=None):
     
     print(pol_str)
     
-    return pol_str, coef
+    return pol_str, coef, diferencias_div
 
 x = [-1, 0, 3, 4]
 y = [15.5, 3, 8, 1]
