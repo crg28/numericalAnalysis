@@ -16,7 +16,7 @@ __pycache__/
 
 # Archivos generados / build
 staticfiles/
-media/
+
 *.log
 
 # Node / otros

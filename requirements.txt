@@ -4,3 +4,5 @@ typing_extensions==4.15.0
 Django==5.1.2
 numpy==2.1.2
 sympy==1.13.2
+Pillow
+matplotlib

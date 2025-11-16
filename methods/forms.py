@@ -19,14 +19,14 @@ class AbForm(forms.Form):
         label='Matrix A',
         widget=forms.Textarea(attrs={
             'rows': 6,
-            'placeholder': 'Ejemplos:\n1 2 3\n4 5 6\n7 8 10\n\nó\n1,2,3; 4,5,6; 7,8,10\nó\n[[1,2],[3,4]]'
+            'placeholder': 'Examples:\n1 2 3\n4 5 6\n7 8 10\n\nó\n1,2,3; 4,5,6; 7,8,10\nó\n[[1,2],[3,4]]'
         })
     )
     b = forms.CharField(
         label='Vector b',
         widget=forms.Textarea(attrs={
             'rows': 3,
-            'placeholder': 'Ejemplos:\n1\n0\n3\n\nó\n1,0,3\nó\n[1,0,3]'
+            'placeholder': 'Examples:\n1\n0\n3\n\nó\n1,0,3\nó\n[1,0,3]'
         })
     )
 
@@ -56,3 +56,25 @@ class IterativeForm(forms.Form):
 class SorForm(IterativeForm):
     """SOR = IterativeForm + w."""
     w = forms.FloatField(label='ω (relaxation factor)', initial=1.0)
+
+class GraphForm(forms.Form):
+    fx = forms.CharField(
+        label="f(x)",
+        help_text="Example: x**2 - 3*x + 2 or sin(x)",
+        widget=forms.TextInput(attrs={"placeholder": "f(x)"})
+    )
+    x_min = forms.FloatField(
+        label="x min",
+        initial=-5.0
+    )
+    x_max = forms.FloatField(
+        label="x max",
+        initial=5.0
+    )
+    n_points = forms.IntegerField(
+        label="Number of points",
+        initial=200,
+        min_value=10,
+        max_value=2000,
+        help_text="Number of sample points in the interval"
+    )

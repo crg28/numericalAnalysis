@@ -2,36 +2,226 @@
 {% load i18n %}
 
 {% block title %}{{ method.name }}{% endblock %}
+{% block extra_css %}
+<style>
+
+  /* ===== Contenedor general de la página ===== */
+  .root-page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding-top: 10px;
+  }
+
+  /* ===== Grid principal: IZQ (form) + DER (graficador) ===== */
+  .root-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;  /* ← ajusta 420 si quieres más/menos ancho de la izquierda */
+      gap: 20rem;
+      align-items: flex-start;
+      margin-top: 0.5rem;   /* separación entre el título y el grid */
+      margin-bottom: 1rem;
+  }
+
+  .root-left {
+      min-width: 0;
+  }
+
+
+  /* ===== Caja beige de sugerencias, ahora FLOTANTE en la parte superior derecha ===== */
+.plotter-hints-root {
+    position: absolute;   /* ← Ahora sí flota dentro del panel */
+    top: 12px;
+    right: 12px;
+
+    width: 240px;
+
+    background: #fff4dd;
+    border: 1px solid #ffd79c;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.82rem;
+
+    z-index: 5;           /* queda encima pero sin tapar la gráfica */
+}
+
+/* listas más compactas */
+.plotter-hints-root ul {
+    margin: 0.3rem 0 0.3rem 1rem;
+    padding: 0;
+}
+
+
+
+  /* ===== Área donde se dibuja la gráfica ===== */
+  #root-graph {
+      width: 100%;
+      height: 300px; 
+      margin-top: 60px;   /* ← altura de la gráfica; súbela o bájala aquí */
+      
+  }
+
+  /* Este panel será el "padre" donde flotará la cajita beige */
+.root-graph-panel {
+    position:relative  ;
+    height: 420px;    /* ← MUY IMPORTANTE */
+    width: 100%;
+    max-width: 900px;        /* ancho recomendado */
+    background: white;  
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin: 0 auto;
+    margin-top: -20px;
+}
+
+  /* ===== Versión responsive para pantallas pequeñas ===== */
+  @media (max-width: 1000px) {
+      .root-layout {
+          grid-template-columns: 1fr; /* pasa a una sola columna */
+      }
+      .root-graph-panel {
+          margin-top: 1rem;  /* en móvil no usamos el margin-top negativo */
+      }
+      #root-graph {
+          height: 300px;
+      }
+  }
+</style>
+{% endblock %}
+
 
 {% block content %}
-<h1>{{ method.name }}</h1>
+<div class="root-page">
 
-{% if help_items %}
-  <h3>About this method</h3>
-  <ul>
-    {% for tip in help_items %}<li>{{ tip }}</li>{% endfor %}
-  </ul>
-{% endif %}
+    <h1>{{ method.name }}</h1>
 
-<h3>Input</h3>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">{% trans "Solve" %}</button>
-</form>
+    <!-- ================================================
+         GRID PRINCIPAL: IZQUIERDA (form) + DERECHA (gráfica)
+         ================================================= -->
+    <div class="root-layout">
 
-{% if error %}
-  <h3>Error</h3>
-  <pre>{{ error }}</pre>
-{% endif %}
+        <!-- ************* COLUMNA IZQUIERDA ************* -->
+        <div class="root-left">
 
-{% if plot_data_uri %}
-  <h3>Function plot</h3>
-  <img src="{{ plot_data_uri }}" alt="plot" />
-{% endif %}
+            {% if help_items %}
+              <h3>About this method</h3>
+              <ul>
+                {% for tip in help_items %}
+                  <li>{{ tip }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
 
-{% if console %}
-  <h3>Console output</h3>
-  <pre>{{ console }}</pre>
-{% endif %}
+            <h3>Input</h3>
+
+            <form method="post" style="margin-bottom:1rem;">
+                {% csrf_token %}
+                {{ form.as_p }}
+
+                <button type="submit">{% trans "Solve" %}</button>
+
+                <!-- Botón que activa la gráfica -->
+                <button type="button" id="root-plot-btn">📈 Graph</button>
+            </form>
+
+            {% if error %}
+                <h3>Error</h3>
+                <pre>{{ error }}</pre>
+            {% endif %}
+
+        </div>
+
+        <!-- ************** COLUMNA DERECHA ─ GRÁFICADOR ************** -->
+        <aside class="root-graph-panel">
+
+            <h3>Quick graph of f(x)</h3>
+            <p style="font-size:1rem; align-items:center;">Uses the current f(x) from the form.</p>
+
+            <!-- Caja de sugerencias -->
+            <div class="plotter-hints-root">
+                <strong>Function syntax:</strong>
+                <ul style="margin-top:4px;">
+                    <li><code>exp(x)</code> for e<sup>x</sup></li>
+                    <li><code>log(x)</code> for natural log</li>
+                    <li><code>sqrt(x)</code>, <code>abs(x)</code></li>
+                    <li><code>sin(x)</code>, <code>cos(x)</code>, <code>tan(x)</code></li>
+                    <li><code>sin(x)^2</code> instead of sin²(x)</li>
+                </ul>
+            </div>
+
+            <!-- Contenedor donde dibuja Plotly -->
+            <div id="root-graph"></div>
+
+        </aside>
+
+    </div>
+    <!-- ======================
+         CONSOLA DE RESULTADOS
+         ====================== -->
+    {% if console %}
+        <h3>Console output</h3>
+        <pre>{{ console }}</pre>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* *****************************************************
+   SISTEMA DE GRAFICADO ─ USAMOS math.js + Plotly
+   ***************************************************** */
+document.addEventListener("DOMContentLoaded", () => {
+
+    const btn = document.getElementById("root-plot-btn");
+    const graphDiv = document.getElementById("root-graph");
+
+    btn.addEventListener("click", () => {
+
+        /* Obtener la función escrita por el usuario */
+        const fxField = document.querySelector("input[name='fx']");
+        if (!fxField) return;
+
+        const expr = fxField.value.trim();
+        if (!expr) {
+            alert("Enter a function first.");
+            return;
+        }
+
+        /* Compilar con math.js */
+        let f;
+        try {
+            f = math.compile(expr);
+        } catch (err) {
+            alert("Invalid function. Check syntax.\n\nExamples:\nexp(x), log(x), sqrt(x), sin(x)^2");
+            return;
+        }
+
+        /* Generar puntos automáticos entre [-10, 10] */
+        const xs = math.range(-10, 10, 0.03).toArray();
+
+        const ys = xs.map(x => {
+            try {
+                const y = f.evaluate({ x });
+                return Number.isFinite(y) ? y : null;
+            } catch {
+                return null;
+            }
+        });
+
+        /* Dibujar gráfica */
+        Plotly.newPlot(graphDiv, [{
+            x: xs,
+            y: ys,
+            mode: "lines",
+            line: { color: "#1a73e8", width: 2 }
+        }], {
+            margin: { t: 20, r: 20, l: 45, b: 40 },
+            xaxis: { title: "x", zeroline: true },
+            yaxis: { title: "f(x)", zeroline: true }
+        });
+    });
+
+});
+</script>
 {% endblock %}

@@ -3,24 +3,24 @@
     "model": "methods.category",
     "pk": 1,
     "fields": {
-      "name": "Métodos de raíces",
-      "slug": "raices"
+      "name": "roots methods",
+      "slug": "roots"
     }
   },
   {
     "model": "methods.category",
     "pk": 2,
     "fields": {
-      "name": "Sistemas lineales",
-      "slug": "lineales"
+      "name": "Linear sistems",
+      "slug": "linear"
     }
   },
   {
     "model": "methods.category",
     "pk": 3,
     "fields": {
-      "name": "Interpolación",
-      "slug": "interpolacion"
+      "name": "Interpolation",
+      "slug": "interpolation"
     }
   },
 
@@ -34,7 +34,8 @@
       "description": "Find roots by partitioning the interval.",
       "category": 1,
       "is_featured": true,
-      "kind": "bisection"
+      "kind": "bisection",
+      "image": "methods/mat1.jpeg" 
     }
   },
   {
@@ -46,7 +47,9 @@
       "description": "Solve x=g(x) equations using iteration.",
       "category": 1,
       "is_featured": true,
-      "kind": "fixed_point"
+      "kind": "fixed_point",
+      "image": "methods/mat7.jpeg" 
+
     }
   },
   {
@@ -58,7 +61,9 @@
       "description": "Roots with derivative (Newton's method).",
       "category": 1,
       "is_featured": true,
-      "kind": "newton"
+      "kind": "newton",
+      "image": "methods/mat5.jpeg" 
+
     }
   },
   {
@@ -70,7 +75,9 @@
       "description": "Roots without derivatives.",
       "category": 1,
       "is_featured": true,
-      "kind": "secant"
+      "kind": "secant",
+      "image": "methods/mat9.jpeg" 
+
     }
   },
 
@@ -83,7 +90,9 @@
       "description": "Gaussian elimination with partial pivoting.",
       "category": 2,
       "is_featured": true,
-      "kind": "pivot_partial"
+      "kind": "pivot_partial",
+      "image": "methods/mat3.jpeg" 
+
     }
   },
   {
@@ -95,7 +104,9 @@
       "description": "Gaussian elimination with full pivoting.",
       "category": 2,
       "is_featured": true,
-      "kind": "pivot_total"
+      "kind": "pivot_total",
+      "image": "methods/mat2.jpeg" 
+
     }
   },
   {
@@ -107,7 +118,9 @@
       "description": "Iterative linear solver using Jacobi method.",
       "category": 2,
       "is_featured": true,
-      "kind": "jacobi"
+      "kind": "jacobi",
+      "image": "methods/Celestia_-_Airdrop__Printable_Planner_by__Shawn_Lowry.jpg" 
+
     }
   },
   {
@@ -119,7 +132,9 @@
       "description": "Iterative linear solver using Gauss-Seidel method.",
       "category": 2,
       "is_featured": true,
-      "kind": "gauss_seidel"
+      "kind": "gauss_seidel",
+      "image": "methods/1158900_Mathematics_Stock_Illustrations_Royalty-Free_Vector_Graphics__Clip_Art_-_iStock.jpg" 
+      
     }
   },
   {
@@ -131,7 +146,8 @@
       "description": "Successive Over-Relaxation (iterative linear solver).",
       "category": 2,
       "is_featured": true,
-      "kind": "sor"
+      "kind": "sor",
+      "image": "methods/Leucippus__Democritus__The_Ancient_Minds_Behind_Atomic_Theory.jpg"
     }
   },
   {
@@ -143,7 +159,9 @@
       "description": "LU decomposition using Crout’s method.",
       "category": 2,
       "is_featured": true,
-      "kind": "crout"
+      "kind": "crout",
+      "image": ".jpg"
+
     }
   },
   {
@@ -155,7 +173,8 @@
       "description": "LU decomposition using Doolittle’s method.",
       "category": 2,
       "is_featured": true,
-      "kind": "doolittle"
+      "kind": "doolittle",
+      "image":"methods/-3.jpg"
     }
   },
   {
@@ -167,7 +186,8 @@
       "description": "Matrix factorization A=LLᵀ for SPD matrices.",
       "category": 2,
       "is_featured": true,
-      "kind": "cholesky"
+      "kind": "cholesky",
+      "image": "methods/Pi_Its_Not_Just_For_Circles.jpg"
     }
   },
 
@@ -180,7 +200,8 @@
       "description": "Polynomial interpolation using Lagrange formula.",
       "category": 3,
       "is_featured": true,
-      "kind": "lagrange"
+      "kind": "lagrange",
+      "image": "-4.jpg"
     }
   },
   {
@@ -192,7 +213,8 @@
       "description": "Polynomial interpolation using Vandermonde matrix.",
       "category": 3,
       "is_featured": true,
-      "kind": "vandermonde"
+      "kind": "vandermonde",
+      "image": "methods/Vectorland_Mathematics_Courses_Algebra_Calculus_Physics_Chemistry_Engineering.jpg"
     }
   },
   {
@@ -204,7 +226,8 @@
       "description": "Smooth interpolation using natural cubic splines.",
       "category": 3,
       "is_featured": true,
-      "kind": "spline"
+      "kind": "spline",
+      "image":"methods/Mathematics_is_love.jpg"
     }
   }
 ]

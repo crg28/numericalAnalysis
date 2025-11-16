@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Function Plotter{% endblock %}
+
+{% block extra_css %}
+<style>
+  .plotter-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .plotter-sidebar {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .plotter-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .plotter-input-bullet {
+    font-weight: 600;
+    min-width: 48px;
+  }
+
+  .plotter-input-row input {
+    flex: 1;
+  }
+
+  .plotter-help {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.75rem;
+  }
+
+  .plotter-hints {
+    margin-top: 0.75rem;
+    font-size: 0.83rem;
+    background: #fff6e5;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #ffd391;
+  }
+
+  .plotter-hints strong {
+    font-weight: 600;
+  }
+
+  .plotter-hints code {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 0.8rem;
+    background: rgba(0,0,0,0.03);
+    padding: 0 0.2rem;
+    border-radius: 4px;
+  }
+
+  .plotter-graph-wrapper {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  @media (max-width: 900px) {
+    .plotter-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Function Plotter</h1>
+
+<div class="plotter-layout">
+  <!-- Sidebar -->
+  <aside class="plotter-sidebar">
+
+    <!-- f(x) -->
+    <div class="plotter-input-row">
+      <span class="plotter-input-bullet">f(x) =</span>
+      <input id="fx-input" type="text" placeholder="e.g. sin(x), x^3 - 2*x, exp(-x)*cos(3x)">
+    </div>
+
+    <!-- Dominio: x min / x max -->
+    <div class="plotter-input-row">
+      <span class="plotter-input-bullet">x min</span>
+      <input id="x-min" type="number" step="any" value="-10">
+    </div>
+
+    <div class="plotter-input-row">
+      <span class="plotter-input-bullet">x max</span>
+      <input id="x-max" type="number" step="any" value="10">
+    </div>
+
+    <button id="plot-btn" class="btn btn-primary" style="margin-top: 1rem;">
+      Plot
+    </button>
+
+    <p class="plotter-help">
+      Default domain is [-10, 10]. You can change it using <strong>x min</strong> and <strong>x max</strong>.
+    </p>
+
+    <!-- Caja de sugerencias -->
+    <div class="plotter-hints">
+      <strong>Tips for writing functions:</strong>
+      <ul style="margin: 0.3rem 0 0 1rem; padding: 0;">
+        <li>Exponential: <code>exp(x)</code> (instead of <code>e^x</code>).</li>
+        <li>Natural log: <code>log(x)</code> (not <code>ln(x)</code>).</li>
+        <li>Square root: <code>sqrt(x)</code>.</li>
+        <li>Absolute value: <code>abs(x)</code>.</li>
+        <li><code>sin(x)^2</code> instead of <code>sin^2(x)</code>.</li>
+        <li>Use <code>^</code> for powers (e.g. <code>x^3 - 2*x</code>).</li>
+      </ul>
+    </div>
+
+  </aside>
+
+  <!-- Graph -->
+  <section class="plotter-graph-wrapper">
+    <div id="plotter-graph" style="width: 100%; height: 65vh;"></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const fxInput   = document.getElementById("fx-input");
+    const xMinInput = document.getElementById("x-min");   // 🔹 nuevo
+    const xMaxInput = document.getElementById("x-max");   // 🔹 nuevo
+    const plotBtn   = document.getElementById("plot-btn");
+    const graphDiv  = document.getElementById("plotter-graph");
+
+    function plotFunction() {
+        const expr = fxInput.value.trim();
+        if (!expr) return;
+
+        // 1. Compilar la función
+        let f;
+        try {
+            f = math.compile(expr);
+        } catch (err) {
+            alert("Invalid expression. Check your syntax.");
+            return;
+        }
+
+        // 2. Leer dominio seleccionado por el usuario
+        let xMin = parseFloat(xMinInput.value);
+        let xMax = parseFloat(xMaxInput.value);
+
+        if (isNaN(xMin) || isNaN(xMax)) {
+            alert("Please enter valid numeric values for x min and x max.");
+            return;
+        }
+
+        if (xMin >= xMax) {
+            alert("x min must be strictly less than x max.");
+            return;
+        }
+
+        // 3. Construir el rango de x en el dominio elegido
+        const nPoints = 400;  // puedes ajustar este valor si quieres más/menos resolución
+        const step = (xMax - xMin) / nPoints;
+        const xs = math.range(xMin, xMax, step).toArray();
+
+        // 4. Evaluar f(x) en cada punto
+        let ys = [];
+        try {
+            ys = xs.map(x => {
+                const y = f.evaluate({ x });
+                return (isFinite(y) ? y : null);
+            });
+        } catch (error) {
+            alert("Error evaluating function.");
+            return;
+        }
+
+        // 5. Dibujar con Plotly
+        Plotly.newPlot(graphDiv, [{
+            x: xs,
+            y: ys,
+            mode: "lines",
+            line: { color: "#007bff", width: 2 }
+        }], {
+            margin: { t: 10, r: 10, l: 40, b: 40 },
+            xaxis: { title: "x", zeroline: true },
+            yaxis: { title: "f(x)", zeroline: true }
+        });
+    }
+
+    plotBtn.addEventListener("click", plotFunction);
+
+    // Opcional: plotea algo por defecto al cargar, por ejemplo f(x)=x
+    // fxInput.value = "x";
+    // plotFunction();
+});
+</script>
+{% endblock %}
