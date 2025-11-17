@@ -1,53 +1,144 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto py-8">
+<div class="max-w-7xl mx-auto py-8">
+
   <h1 class="text-4xl font-bold mb-6">{{ method_name }}</h1>
 
-  <div class="bg-white shadow rounded-2xl p-6">
-    <form method="post">
-      {% csrf_token %}
-      {% for field in form %}
-      <div class="mb-4">
-        <label class="block text-gray-700 font-medium mb-1">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
-        {% if field.errors %}<p class="text-sm text-red-600">{{ field.errors|striptags }}</p>{% endif %}
+  <div class="flex gap-6 items-start">
+
+    <!-- LEFT SIDE -->
+    <div class="flex-1 min-w-[60%]">
+
+      <div class="bg-white shadow rounded-2xl p-6">
+        <form method="post" id="method-form">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="mb-4">
+            <label class="block text-gray-700 font-medium mb-1">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+            <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+            <p class="text-sm text-red-600">{{ field.errors|striptags }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          <div class="flex gap-4">
+            <button class="px-5 py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600">
+              Run
+            </button>
+
+            <button type="button" id="plot-btn"
+              class="px-5 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600">
+              📈 Graph
+            </button>
+          </div>
+        </form>
       </div>
-      {% endfor %}
-      <button class="px-5 py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600">
-        Run
-      </button>
-    </form>
-  </div>
 
-  {% if error %}
-  <div class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">{{ error }}</div>
-  {% endif %}
+      {% if error %}
+      <div class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+        {{ error }}
+      </div>
+      {% endif %}
 
-  {% if poly %}
-  <div class="mt-6 bg-white shadow rounded-2xl p-6">
-    <h3 class="text-xl font-semibold mb-3">Result</h3>
-    <pre class="whitespace-pre-wrap text-sm">{{ poly }}</pre>
-  </div>
-  {% endif %}
-  {% if eval_result %}
-    <div class="mt-6 bg-white shadow rounded-2xl p-6">
-      <h3 class="text-xl font-semibold mb-3">Evaluación en X</h3>
-      <pre class="whitespace-pre-wrap text-sm">{{ eval_result }}</pre>
+      {% if poly %}
+      <div class="mt-6 bg-white shadow rounded-2xl p-6">
+        <h3 class="text-xl font-semibold mb-3">Result</h3>
+        <pre class="whitespace-pre-wrap text-sm">{{ poly }}</pre>
+      </div>
+      {% endif %}
+
+      {% if eval_result %}
+      <div class="mt-6 bg-white shadow rounded-2xl p-6">
+        <h3 class="text-xl font-semibold mb-3">Evaluation at X</h3>
+        <pre class="whitespace-pre-wrap text-sm">{{ eval_result }}</pre>
+      </div>
+      {% endif %}
+
     </div>
-  {% endif %}
-  {% if diff_table and diff_table|length > 0 %}
-    <h3>Tabla de diferencias divididas</h3>
-    <table class="table table-bordered table-striped">
-        {% for row in diff_table %}
-            <tr>
-                {% for value in row %}
-                    <td>{{ value }}</td>
-                {% endfor %}
-            </tr>
-        {% endfor %}
-    </table>
+
+    <!-- RIGHT SIDE -->
+    <div id="graph-card" class="w-[360px] hidden bg-white shadow rounded-2xl p-6 sticky top-10">
+      <h3 class="text-xl font-semibold mb-3">Graph</h3>
+      <div id="plot-area" class="w-full h-[260px]"></div>
+    </div>
+
+  </div>
+
+  {% if plot_data %}
+    <script id="plot-data" type="application/json">
+        {{ plot_data|safe }}
+    </script>
   {% endif %}
 
 </div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const plotBtn = document.getElementById("plot-btn");
+  const plotArea = document.getElementById("plot-area");
+  const graphCard = document.getElementById("graph-card");
+
+  plotBtn.addEventListener("click", () => {
+
+    const raw = document.getElementById("plot-data");
+    if (!raw) {
+      alert("No hay datos de spline para graficar.");
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(raw.innerHTML.trim());
+    } catch (e) {
+      console.error("JSON inválido:", raw.innerHTML);
+      alert("Error: los datos del spline son inválidos.");
+      return;
+    }
+
+    const traces = [];
+
+    // ----------- CURVAS DEL SPLINE (xs, ys) -------------
+    data.segments.forEach(seg => {
+      traces.push({
+        x: seg.xs,
+        y: seg.ys,
+        mode: "lines",
+        line: { width: 3 },
+        name: "Spline",
+        showlegend: false,
+      });
+    });
+
+    // ---------------- PUNTOS ORIGINALES ------------------
+    const px = data.points.map(p => p.x);
+    const py = data.points.map(p => p.y);
+
+    traces.push({
+      x: px,
+      y: py,
+      mode: "markers",
+      marker: { size: 7, color: "red" },
+      name: "Points",
+    });
+
+    graphCard.classList.remove("hidden");
+
+    Plotly.newPlot(plotArea, traces, {
+      margin: { t: 10, r: 10, l: 40, b: 40 },
+      xaxis: { title: "x" },
+      yaxis: { title: "y" }
+    });
+  });
+});
+</script>
 {% endblock %}
