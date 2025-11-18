@@ -3,7 +3,7 @@ import numpy as np
 
 
 def print_matrix(A, step):
-    print(f"\nEtapa {step}:")
+    print(f"\nStage {step}:")
     for row in A:
         print("  ".join(f"{val: .6f}" for val in row))
 
@@ -21,38 +21,38 @@ def determinant(M):
 
 def simple_gaussian_elimination(A, n):
     """
-    Eliminación Gaussiana Simple (sin pivoteo)
+    Simple Gaussian Elimination (no pivoting)
 
-    Garantía:
-    - Si A[k][k] == 0 → Error fatal: no es posible continuar.
+    Guarantee:
+    - If A[k][k] == 0 → Fatal error: cannot continue.
     """
-    # Determinante para verificar unicidad de la solución
+    # Determinant to verify uniqueness of the solution
     coef = [row[:-1] for row in A]
     detA = determinant(coef)
 
     if abs(detA) < 1e-12:
-        print("\n❌ ERROR: El sistema no tiene solución única (det(A) ≈ 0).\n")
+        print("\n❌ ERROR: The system does not have a unique solution (det(A) ≈ 0).\n")
         return None
 
-    print("\nEliminación Gaussiana Simple\n")
-    print("Matriz aumentada inicial:\n")
+    print("\nSimple Gaussian Elimination\n")
+    print("Initial augmented matrix:\n")
     print_matrix(A, 0)
 
-    # Eliminación hacia adelante
+    # Forward elimination
     for k in range(n - 1):
-        pivote = A[k][k]
+        pivot = A[k][k]
 
-        if abs(pivote) < 1e-14:
-            print("\n❌ ERROR EN ELIMINACIÓN GAUSSIANA SIMPLE\n")
+        if abs(pivot) < 1e-14:
+            print("\n❌ ERROR IN SIMPLE GAUSSIAN ELIMINATION\n")
             print(
-                f"Error [Etapa {k+1}]: Pivote nulo detectado en A[{k+1},{k+1}] = 0.\n"
-                "La factorización no puede continuar porque este método NO usa pivoteo.\n"
-                "Se recomienda usar pivoteo parcial o total para este sistema.\n"
+                f"Error [Stage {k+1}]: Zero pivot detected at A[{k+1},{k+1}] = 0.\n"
+                "Factorization cannot continue because this method does NOT use pivoting.\n"
+                "Partial or total pivoting is recommended for this system.\n"
             )
             return None
 
         for i in range(k + 1, n):
-            m = A[i][k] / pivote
+            m = A[i][k] / pivot
             for j in range(k, n + 1):
                 A[i][j] -= m * A[k][j]
 
@@ -65,14 +65,14 @@ def back_substitution(A, n):
     x = [0.0] * n
     for i in range(n - 1, -1, -1):
         if abs(A[i][i]) < 1e-14:
-            print("\n❌ ERROR: División por cero en sustitución regresiva.\n")
+            print("\n❌ ERROR: Division by zero in back substitution.\n")
             return None
-        suma = sum(A[i][j] * x[j] for j in range(i + 1, n))
-        x[i] = (A[i][n] - suma) / A[i][i]
+        s = sum(A[i][j] * x[j] for j in range(i + 1, n))
+        x[i] = (A[i][n] - s) / A[i][i]
     return x
 
 
-# ---- Entrada pública (Django) ----
+# ---- Public entry point (Django) ----
 def gaussian_elimination(A, b):
     A = [list(map(float, row)) for row in A]
     b = list(map(float, b))
@@ -88,6 +88,6 @@ def gaussian_elimination(A, b):
     if x is None:
         return
 
-    print("\n🔹 Solución del sistema:")
+    print("\n🔹 System solution:")
     for i, xi in enumerate(x, start=1):
         print(f"x{i} = {xi:.6f}")

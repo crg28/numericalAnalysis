@@ -32,16 +32,16 @@ def back_sub(U: np.ndarray, y: np.ndarray) -> np.ndarray:
         x[i] = (y[i] - s) / U[i, i]
     return x
 
-# ---------- Doolittle (diag(L) = 1), con verificación de pivote U[k,k] ----------
+# ---------- Doolittle (diag(L) = 1), with pivot verification U[k,k] ----------
 def doolittle_lu(A: np.ndarray):
     """
-    Doolittle LU: A = L * U con diag(L) = 1.
+    Doolittle LU: A = L * U with diag(L) = 1.
 
-    Garantías:
-    - En cada etapa k:
-        1. Se calcula U[k,k].
-        2. Se verifica que U[k,k] != 0.
-        3. Si U[k,k] ~ 0, se aborta factorización.
+    Guarantees:
+    - At each stage k:
+        1. U[k,k] is computed.
+        2. U[k,k] is checked to ensure it is not zero.
+        3. If U[k,k] ≈ 0, factorization is aborted.
     """
     A = np.array(A, dtype=np.complex128)
     n = A.shape[0]
@@ -51,20 +51,20 @@ def doolittle_lu(A: np.ndarray):
     tol_piv = 1e-14
 
     for k in range(n):
-        # 1️⃣ Fila k de U
+        # 1️⃣ Row k of U
         for j in range(k, n):
             U[k, j] = A[k, j] - sum(L[k, p] * U[p, j] for p in range(k))
 
-        # 🚨 Comprobación del pivote U[k,k]
+        # 🚨 Pivot U[k,k] check
         if abs(U[k, k]) < tol_piv:
-            etapa = k + 1
+            stage = k + 1
             raise ValueError(
-                f"Error [Etapa {etapa}]: División por cero. "
-                "El elemento diagonal u_kk calculado es nulo. "
-                "La factorización Doolittle no se puede completar."
+                f"Error [Stage {stage}]: Division by zero. "
+                "The computed diagonal element u_kk is zero. "
+                "Doolittle factorization cannot be completed."
             )
 
-        # 2️⃣ Columna k de L
+        # 2️⃣ Column k of L
         for i in range(k + 1, n):
             L[i, k] = (A[i, k] - sum(L[i, p] * U[p, k] for p in range(k))) / U[k, k]
 
@@ -89,23 +89,23 @@ def doolittle_demo(A: np.ndarray, b: np.ndarray) -> None:
 
     for k in range(n):
 
-        # 1️⃣ Fila k de U
+        # 1️⃣ Row k of U
         for j in range(k, n):
             U[k, j] = Awork[k, j] - sum(L[k, p] * U[p, j] for p in range(k))
 
-        # 🚨 Chequeo pivote
+        # 🚨 Pivot check
         if abs(U[k, k]) < tol_piv:
-            etapa = k + 1
-            print("\nERROR NUMÉRICO EN FACTORIZACIÓN DOOLITTLE\n")
+            stage = k + 1
+            print("\nNUMERICAL ERROR IN DOOLITTLE FACTORIZATION\n")
             print(
-                f"Error [Etapa {etapa}]: División por cero. "
-                "El elemento diagonal u_kk calculado es nulo. "
-                "La factorización Doolittle no se puede completar."
+                f"Error [Stage {stage}]: Division by zero. "
+                "The computed diagonal element u_kk is zero. "
+                "Doolittle factorization cannot be completed."
             )
             print("\n____________________________________________________________________________")
             return
 
-        # 2️⃣ Columna k de L
+        # 2️⃣ Column k of L
         for i in range(k + 1, n):
             L[i, k] = (Awork[i, k] - sum(L[i, p] * U[p, k] for p in range(k))) / U[k, k]
 
@@ -115,7 +115,7 @@ def doolittle_demo(A: np.ndarray, b: np.ndarray) -> None:
         print_matrix(U, "U")
         print()
 
-    # Solución
+    # Solution
     y = forward_sub(L, b.astype(np.complex128))
     x = back_sub(U, y)
 
@@ -124,5 +124,3 @@ def doolittle_demo(A: np.ndarray, b: np.ndarray) -> None:
     for xi in x:
         print(f"{xi.real:.6f}")
     print("\n____________________________________________________________________________")
-
-

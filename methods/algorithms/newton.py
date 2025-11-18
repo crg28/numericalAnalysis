@@ -6,34 +6,34 @@ x = sp.symbols("x")
 
 def newton(f, x0=0.0, tol=1e-7, max_iter=100, df_str=None, **kwargs):
     """
-    Método de Newton-Raphson adaptado a invoke_root_algorithm.
+    Newton–Raphson Method adapted for invoke_root_algorithm.
 
-    Criterio de paro:
-      - Se detiene cuando el error E = |x_i - x_{i-1}| < tol
-        (o cuando se alcanzan max_iter iteraciones).
+    Stopping criterion:
+      - The method stops when the error E = |x_i - x_{i-1}| < tol
+        (or when max_iter iterations are reached).
     """
 
-    # 1. Verificar que tenemos f y df_str
+    # 1. Verify we received f and df_str
     if f is None:
-        print("Newton: no se recibió la función f.")
+        print("Newton: function f was not provided.")
         return
 
     if not df_str:
-        print("Newton: se requiere la derivada f'(x) (df_str).")
+        print("Newton: the derivative f'(x) (df_str) is required.")
         return
 
-    # 2. Construir df callable a partir de df_str
+    # 2. Build df callable from df_str
     try:
         df_expr = sp.sympify(df_str)
     except Exception as e:
-        print(f"Newton: no se pudo interpretar df_str='{df_str}': {e}")
+        print(f"Newton: could not interpret df_str='{df_str}': {e}")
         return
 
     df = sp.lambdify(x, df_expr, "math")
 
-    # 3. Cabecera de la tabla
-    print("Método de Newton–Raphson\n")
-    print("Tabla de resultados:\n")
+    # 3. Table header
+    print("Newton–Raphson Method\n")
+    print("Results Table:\n")
     print("| iter|          xi |       f(xi) |          E |")
 
     xi = float(x0)
@@ -43,28 +43,28 @@ def newton(f, x0=0.0, tol=1e-7, max_iter=100, df_str=None, **kwargs):
         fxi = f(xi)
 
         if i == 0:
-            # primera iteración → no hay E aún
+            # first iteration → no error E yet
             print(f"| {i:3d} | {xi:11.9f} | {fxi:11.1e} |            |")
         else:
             E = abs(xi - x_prev)
             print(f"| {i:3d} | {xi:11.9f} | {fxi:11.1e} | {E:10.1e} |")
 
-            # 🔸 Criterio de paro por E
+            # 🔸 Stop criterion
             if E < tol:
                 break
 
-        # Paso de Newton
+        # Newton step
         try:
             dfxi = df(xi)
         except Exception as e:
-            print(f"\nError al evaluar f'({xi}): {e}")
+            print(f"\nError evaluating f'({xi}): {e}")
             return
 
         if dfxi == 0:
-            print(f"\nDerivada nula en x = {xi:.9f}. No se puede continuar.")
+            print(f"\nZero derivative at x = {xi:.9f}. Cannot continue.")
             return
 
         x_prev = xi
         xi = xi - fxi / dfxi
 
-    print(f"\nSe encontró una aproximación de la raíz en {xi}")
+    print(f"\nAn approximation of the root was found at {xi}")

@@ -16,7 +16,7 @@ def spectral_radius(T: np.ndarray) -> float:
 def is_diagonally_dominant(A: np.ndarray) -> bool:
     """
     Check (row-wise) diagonal dominance:
-        |a_ii| >= sum_{j != i} |a_ij|  for all i
+        |a_ii| >= sum_{j != i} |a_ij|  for all rows i.
     """
     n = A.shape[0]
     for i in range(n):
@@ -48,31 +48,31 @@ def jacobi_core(A, b, x0, tol, niter):
 
     n = A.shape[0]
 
-    # --------- COMPROBACIONES PREVIAS ---------
+    # --------- PRE-CHECKS ---------
 
-    # 1) Verificar que A sea cuadrada y dimensions compatibles con b
+    # 1) Check A is square and dimensions are compatible with b
     if A.shape[0] != A.shape[1]:
-        raise ValueError("Error: la matriz A debe ser cuadrada para aplicar Jacobi.")
+        raise ValueError("Error: matrix A must be square to apply Jacobi.")
 
     if b.shape[0] != n:
         raise ValueError(
-            f"Error: dimensiones incompatibles entre A (n={n}) y b (m={b.shape[0]})."
+            f"Error: incompatible dimensions between A (n={n}) and b (m={b.shape[0]})."
         )
 
-    # 2) Comprobar que ningún elemento diagonal sea cero
+    # 2) Ensure no diagonal element is zero
     diag = np.diagonal(A)
     if np.any(np.isclose(diag, 0.0)):
         idx = int(np.where(np.isclose(diag, 0.0))[0][0])
         raise ValueError(
-            f"Error: Jacobi no se puede aplicar. "
-            f"La matriz A tiene un elemento diagonal nulo en la fila {idx+1} (a_{idx+1},{idx+1} = 0)."
+            f"Error: Jacobi cannot be applied. "
+            f"Matrix A has a zero diagonal element at row {idx+1} (a_{idx+1},{idx+1} = 0)."
         )
 
-    # --------- Descomposición A = D - L - U ---------
+    # --------- Decomposition A = D - L - U ---------
 
     D = np.diag(diag)
-    L = -np.tril(A, -1)  # parte inferior con signo, consistente con A = D - L - U
-    U = -np.triu(A,  1)  # parte superior con signo
+    L = -np.tril(A, -1)  # lower part with sign, consistent with A = D - L - U
+    U = -np.triu(A,  1)  # upper part with sign
 
     # Inverse of D (diagonal matrix)
     inv_D = np.diag(1.0 / diag)
@@ -84,7 +84,7 @@ def jacobi_core(A, b, x0, tol, niter):
     # Spectral radius
     rho = spectral_radius(T)
 
-    # --------- Impresión de resultados previos ---------
+    # --------- Print pre-analysis ---------
     print("Jacobi\n")
     print("Results:\n")
 
@@ -96,29 +96,27 @@ def jacobi_core(A, b, x0, tol, niter):
 
     print(f"\nSpectral radius (rho):\n{rho:.6f}\n")
 
-    # Comprobación de convergencia teórica (radio espectral)
+    # Convergence test (theoretical spectral radius)
     if np.isnan(rho):
-        print("Advertencia: no se pudo calcular el radio espectral de T (NaN).")
+        print("⚠️  Warning: could not compute the spectral radius of T (NaN).")
     elif rho >= 1.0:
         print(
-            "⚠️  Advertencia: el radio espectral ρ(T) es mayor o igual que 1.\n"
-            "   El método de Jacobi no garantiza convergencia para este sistema.\n"
+            "⚠️  Warning: the spectral radius ρ(T) is greater than or equal to 1.\n"
+            "   The Jacobi method does NOT guarantee convergence for this system.\n"
         )
     else:
-        print(
-            "✅ Condición teórica de convergencia cumplida: ρ(T) < 1.\n"
-        )
+        print("✅ Theoretical convergence condition satisfied: ρ(T) < 1.\n")
 
-    # Comprobación simple de dominancia diagonal
+    # Simple check for diagonal dominance
     if is_diagonally_dominant(A):
-        print("✅ La matriz A es diagonalmente dominante (fila a fila).\n")
+        print("✅ Matrix A is diagonally dominant (row-wise).\n")
     else:
         print(
-            "⚠️  La matriz A no es estrictamente diagonalmente dominante.\n"
-            "   Jacobi podría no converger, aunque esta condición no es necesaria.\n"
+            "⚠️  Matrix A is NOT strictly diagonally dominant.\n"
+            "   Jacobi may fail to converge, although this condition is not necessary.\n"
         )
 
-    # --------- Iteración de Jacobi ---------
+    # --------- Jacobi iteration ---------
     iteration = 0
     error = 1.0  # initial error
 
@@ -129,7 +127,7 @@ def jacobi_core(A, b, x0, tol, niter):
     x_str = "  ".join(f"{val:.6f}" for val in x0.flatten())
     print(f"|  {iteration:>3} | {'-':>10} | {x_str}")
 
-    # Iteration loop
+    # Main loop
     while error > tol and iteration < niter:
         x1 = T @ x0 + C  # Jacobi update
         error = float(np.linalg.norm(x1 - x0, np.inf))
@@ -147,8 +145,8 @@ def jacobi_core(A, b, x0, tol, niter):
         for val in x0.flatten():
             print(f"{val:.6f}")
     else:
-        print(f"\nJacobi method: failed to converge in {niter} iterations.")
-        print("Último vector aproximado x:")
+        print(f"\nJacobi method: failed to converge within {niter} iterations.")
+        print("Last approximate vector x:")
         for val in x0.flatten():
             print(f"{val:.6f}")
 

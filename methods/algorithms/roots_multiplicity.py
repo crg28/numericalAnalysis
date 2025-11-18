@@ -21,8 +21,8 @@ def roots_multiplicity(x0, f_str, f1_str, f2_str, tol=1e-7, max_iter=100):
     fp  = lambdify(x, sympify(f1_str, locals=allowed), modules=("numpy",))
     fpp = lambdify(x, sympify(f2_str, locals=allowed), modules=("numpy",))
 
-    print("Raíces Múltiples\n")
-    print("Tabla de resultados:\n")
+    print("Multiple Roots\n")
+    print("Results Table:\n")
     print("| iter|     xi         |   f(xi)   |     E     |")
 
     f0 = float(f(x0))
@@ -41,12 +41,12 @@ def roots_multiplicity(x0, f_str, f1_str, f2_str, tol=1e-7, max_iter=100):
             E  = 0.0
             fx1 = float(f(x1))
             print(f"|  {k:<1}  | {_fmt_x(x1):<14} | {_fmt_sci(fx1):>7}  | {_fmt_sci(E):>9}  |")
-            print(f"\nSe encontró una aproximación de la raiz en {x1:.12f}")
+            print(f"\nAn approximation of the root was found at {x1:.12f}")
             print("_________________________________________________________________")
             return x1
 
         if abs(den) < 1e-15:
-            print("\nDenominador ~ 0; no se puede continuar con seguridad.")
+            print("\nDenominator ~ 0; cannot proceed safely.")
             return x0
 
         x1 = x0 - (num/den)
@@ -57,13 +57,13 @@ def roots_multiplicity(x0, f_str, f1_str, f2_str, tol=1e-7, max_iter=100):
 
         if E < tol:
             print(f"|  {k+1:<1}  | {_fmt_x(x1):<14} | {_fmt_sci(float(f(x1))):>7}  | {_fmt_sci(0.0):>9}  |")
-            print(f"\nSe encontró una aproximación de la raiz en {x1:.12f}")
+            print(f"\nAn approximation of the root was found at {x1:.12f}")
             print("_________________________________________________________________")
             return x1
 
         x0 = x1
 
-    print("\nSe alcanzó el límite de iteraciones sin cumplir la tolerancia.")
+    print("\nThe maximum number of iterations was reached without meeting tolerance.")
     return x0
 
 # Already compatible with invoke_root_algorithm

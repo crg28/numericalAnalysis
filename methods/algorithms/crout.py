@@ -60,9 +60,10 @@ def crout_lu(A: np.ndarray):
         if abs(L[k, k]) < tol_piv:
             etapa = k + 1  # etapas en 1..n
             msg = (
-                f"Error [Etapa {etapa}]: División por cero. "
-                "El elemento diagonal l_kk calculado es nulo. "
-                "La factorización Crout no se puede completar."
+                f"Error [Stage {etapa}]: Division by zero. "
+                "The computed diagonal element l_kk is zero. "
+                "The Crout factorization cannot be completed."
+
             )
             raise ValueError(msg)
 
@@ -78,12 +79,13 @@ def crout_lu(A: np.ndarray):
 
 def crout_demo(A: np.ndarray, b: np.ndarray) -> None:
     """
-    Versión "demo" de Crout, que:
-    - Imprime etapas con L y U.
-    - Aplica sustitución hacia adelante y hacia atrás.
-    - Detecta l_kk = 0 en cada etapa y muestra mensaje de error
-      en lugar de seguir con la factorización.
+    Demo version of the Crout method, which:
+    - Prints each stage with L and U.
+    - Performs forward and backward substitution.
+    - Detects when l_kk = 0 at any stage and shows an error message
+    instead of continuing with the factorization.
     """
+
     print("Crout\n")
     print("Results:\n")
 
@@ -110,9 +112,10 @@ def crout_demo(A: np.ndarray, b: np.ndarray) -> None:
             etapa = k + 1
             print("\nERROR NUMÉRICO EN FACTORIZACIÓN CROUT\n")
             print(
-                f"Error [Etapa {etapa}]: División por cero. "
-                "El elemento diagonal l_kk calculado es nulo. "
-                "La factorización Crout no se puede completar."
+                f"Error [Stage {etapa}]: Division by zero. "
+                "The computed diagonal element l_kk is zero. "
+                "The Crout factorization cannot be completed."
+
             )
             # No seguimos calculando ni resolviendo
             print("\n____________________________________________________________________________")

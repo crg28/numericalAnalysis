@@ -1,14 +1,14 @@
 # methods/algorithms/partial_pivoting.py
-# === Eliminación Gaussiana con Pivoteo Parcial ===
+# === Gaussian Elimination with Partial Pivoting ===
 
 def exchange_rows(A, r1, r2):
-    """Intercambia filas r1 <-> r2 en la matriz aumentada."""
+    """Swap rows r1 <-> r2 in the augmented matrix."""
     if r1 != r2:
         A[r1], A[r2] = A[r2], A[r1]
 
 
 def print_matrix(A, step):
-    print(f"\nEtapa {step}:")
+    print(f"\nStage {step}:")
     for row in A:
         print("  ".join(f"{val: .6f}" for val in row))
 
@@ -18,40 +18,40 @@ def back_substitution(U, n, tol=1e-14):
     for i in range(n - 1, -1, -1):
         piv = U[i][i]
         if abs(piv) < tol:
-            print("\n❌ ERROR EN SUSTITUCIÓN REGRESIVA\n")
-            print("Se encontró pivote cero tras la eliminación.\n")
+            print("\n❌ ERROR IN BACK SUBSTITUTION\n")
+            print("A zero pivot was found after elimination.\n")
             return None
-        suma = sum(U[i][j] * x[j] for j in range(i + 1, n))
-        x[i] = (U[i][n] - suma) / piv
+        s = sum(U[i][j] * x[j] for j in range(i + 1, n))
+        x[i] = (U[i][n] - s) / piv
     return x
 
 
 def gaussian_partial_pivoting(A, n, tol=1e-14):
-    print("\nEliminación Gaussiana con Pivoteo Parcial\n")
-    print("Matriz aumentada inicial:")
+    print("\nGaussian Elimination with Partial Pivoting\n")
+    print("Initial augmented matrix:")
     print_matrix(A, 0)
 
     for k in range(n - 1):
 
-        # Buscar mayor |A[i][k]| para i >= k
+        # Find largest |A[i][k]| for i >= k
         pivot_row = max(range(k, n), key=lambda i: abs(A[i][k]))
 
         if abs(A[pivot_row][k]) < tol:
-            print("\n❌ MATRIZ SINGULAR\n")
+            print("\n❌ SINGULAR MATRIX\n")
             print(
-                f"Error [Etapa {k+1}]: No se encontró pivote válido en la columna {k+1}.\n"
-                "El sistema NO tiene solución única.\n"
+                f"Error [Stage {k+1}]: No valid pivot found in column {k+1}.\n"
+                "The system does NOT have a unique solution.\n"
             )
             return None
 
-        # Intercambiar filas si es necesario
+        # Swap rows if needed
         exchange_rows(A, k, pivot_row)
 
-        pivote = A[k][k]
+        pivot = A[k][k]
 
-        # Eliminación
+        # Elimination
         for i in range(k + 1, n):
-            factor = A[i][k] / pivote
+            factor = A[i][k] / pivot
             for j in range(k, n + 1):
                 A[i][j] -= factor * A[k][j]
 
@@ -60,9 +60,9 @@ def gaussian_partial_pivoting(A, n, tol=1e-14):
     return A
 
 
-# === Entrada pública usada por Django ===
+# === Public entry point used by Django ===
 def gaussian_elimination_partial_pivoting(A, b):
-    A = [list(map(float, fila)) for fila in A]
+    A = [list(map(float, row)) for row in A]
     b = list(map(float, b))
     n = len(A)
 
@@ -76,6 +76,6 @@ def gaussian_elimination_partial_pivoting(A, b):
     if x is None:
         return
 
-    print("\n🔹 Solución del sistema:")
+    print("\n🔹 System solution:")
     for i, val in enumerate(x, start=1):
         print(f"x{i} = {val:.6f}")

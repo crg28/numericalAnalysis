@@ -1,11 +1,11 @@
 import numpy as np
 
 # ------------------------------------------------------
-# Helpers de impresión y sustitución
+# Printing helpers and substitution
 # ------------------------------------------------------
 def print_matrix(M):
     """
-    Imprime una matriz NumPy con 6 decimales.
+    Print a NumPy matrix with 6 decimal places.
     """
     for row in M:
         print(" " + "  ".join(f"{v: .6f}" for v in row))
@@ -14,8 +14,8 @@ def print_matrix(M):
 
 def forward_substitution(L, b):
     """
-    Sustitución progresiva: resuelve L y = b
-    donde L es triangular inferior.
+    Forward substitution: solves L y = b
+    where L is lower triangular.
     """
     n = len(b)
     y = np.zeros(n, dtype=float)
@@ -29,8 +29,8 @@ def forward_substitution(L, b):
 
 def back_substitution(U, y):
     """
-    Sustitución regresiva: resuelve U x = y
-    donde U es triangular superior.
+    Back substitution: solves U x = y
+    where U is upper triangular.
     """
     n = len(y)
     x = np.zeros(n, dtype=float)
@@ -43,22 +43,23 @@ def back_substitution(U, y):
 
 
 # ------------------------------------------------------
-# Factorización LU simple (sin pivoteo)
+# Simple LU factorization (no pivoting)
 # ------------------------------------------------------
 def lu_factorization(A, b, tol=1e-12):
     """
-    Factorización LU simple basada en eliminación gaussiana SIN pivoteo.
+    Simple LU factorization based on Gaussian elimination WITHOUT pivoting.
 
-    A: matriz de coeficientes (n x n)
-    b: vector independiente (n,)
+    A : coefficient matrix (n x n)
+    b : right-hand-side vector (n,)
 
-    Comportamiento:
-      - Construye L (triangular inferior, diag = 1) y U (triangular superior)
-      - Imprime las etapas de la eliminación, L y U en cada una
-      - Verifica en cada etapa k que el pivote a_kk != 0 (ni muy pequeño).
-        Si |a_kk| < tol:
-          Error [Etapa k]: la matriz no admite LU simple; se requeriría PA = LU.
-      - Al final, verifica también el último pivote a_nn.
+    Behavior:
+      - Builds L (lower triangular, diag = 1) and U (upper triangular)
+      - Prints all elimination stages, L and U at each step
+      - Checks at each stage k that pivot a_kk != 0 (or not too small).
+        If |a_kk| < tol:
+            Error [Stage k]: the matrix does NOT admit simple LU;
+            the system would require PA = LU.
+      - At the end, also checks the last pivot a_nn.
     """
     A = np.array(A, dtype=float)
     b = np.array(b, dtype=float)
@@ -68,80 +69,76 @@ def lu_factorization(A, b, tol=1e-12):
     L = np.eye(n, dtype=float)
     U = np.zeros((n, n), dtype=float)
 
-    print("Factorización LU simple (sin pivoteo)\n")
-    print("Resultados:\n")
+    print("Simple LU Factorization (no pivoting)\n")
+    print("Results:\n")
 
-    # Etapa 0: matriz original
-    print("Etapa 0\n")
+    # Stage 0: original matrix
+    print("Stage 0\n")
     print_matrix(Awork)
 
-    # Eliminación hacia adelante
+    # Forward elimination
     for k in range(n - 1):
         piv = Awork[k, k]
 
-        # ---------- Comprobación de pivote cero / muy pequeño ----------
+        # ---------- Pivot zero / too small check ----------
         if abs(piv) < tol:
-            etapa = k + 1  # para mostrar 1-based
-            print("❌ ERROR EN FACTORIZACIÓN LU SIMPLE\n")
+            stage = k + 1  # 1-based display
+            print("❌ ERROR IN SIMPLE LU FACTORIZATION\n")
             print(
-                f"Error [Etapa {etapa}]: El pivote a_kk en la posición "
-                f"({etapa},{etapa}) es cero (o numéricamente muy cercano a cero).\n"
-                "La eliminación gaussiana sin intercambio de renglones no puede "
-                "continuar.\n\n"
-                "Conclusión: La matriz NO admite factorización LU simple de la "
-                "forma A = L U.\n"
-                "Se requeriría una factorización con permutación de filas: P A = L U."
+                f"Error [Stage {stage}]: Pivot a_kk at position "
+                f"({stage},{stage}) is zero (or numerically too close to zero).\n"
+                "Gaussian elimination without row swapping cannot continue.\n\n"
+                "Conclusion: The matrix does NOT admit simple LU factorization "
+                "of the form A = L U.\n"
+                "A factorization with row permutation is required: P A = L U."
             )
             return None, None, None, None
-        # ----------------------------------------------------------------
+        # --------------------------------------------------
 
-        # Eliminación por debajo del pivote
+        # Elimination below pivot
         for i in range(k + 1, n):
             m = Awork[i, k] / piv
             L[i, k] = m
             Awork[i, k:] -= m * Awork[k, k:]
 
-        # ---- Actualización de U para mostrar como en las tablas ----
-        # La fila k de U queda definitiva
+        # ---- Update U for table-style display ----
         U[k, k:] = Awork[k, k:]
-        # Exponer parcialmente la siguiente fila (estilo tablas de clase)
         if k + 1 < n - 1:
             U[k + 1, k + 1:] = Awork[k + 1, k + 1:]
         elif k + 1 == n - 1:
-            # Última fila: al menos la diagonal
             U[n - 1, n - 1] = Awork[n - 1, n - 1]
-        # -------------------------------------------------------------
+        # ------------------------------------------
 
-        # Imprimir etapa
-        print(f"Etapa {k + 1}\n")
+        # Print stage
+        print(f"Stage {k + 1}\n")
         print_matrix(Awork)
         print("L:")
         print_matrix(L)
         print("U:")
         print_matrix(U)
 
-    # ---------- Comprobación del último pivote (a_nn) ----------
+    # ---------- Check last pivot (a_nn) ----------
     last_piv = Awork[n - 1, n - 1]
     if abs(last_piv) < tol:
-        etapa = n
-        print("❌ ERROR EN FACTORIZACIÓN LU SIMPLE\n")
+        stage = n
+        print("❌ ERROR IN SIMPLE LU FACTORIZATION\n")
         print(
-            f"Error [Etapa {etapa}]: El último pivote a_nn en la posición "
-            f"({etapa},{etapa}) es cero (o numéricamente muy cercano a cero).\n"
-            "La matriz no admite factorización LU simple (A = L U) sin "
-            "intercambio de filas.\n"
-            "Se requeriría una factorización del tipo P A = L U."
+            f"Error [Stage {stage}]: Last pivot a_nn at position "
+            f"({stage},{stage}) is zero (or numerically too close to zero).\n"
+            "The matrix does not admit simple LU factorization (A = L U) without "
+            "row swapping.\n"
+            "A factorization of the form P A = L U is required."
         )
         return None, None, None, None
-    # Aseguramos que U[n-1, n-1] sea consistente
+
     U[n - 1, n - 1] = last_piv
     # ---------------------------------------------------
 
-    # Resolver A x = b usando L y U
+    # Solve A x = b using L and U
     y = forward_substitution(L, b)
     x = back_substitution(U, y)
 
-    print("\nDespués de aplicar sustitución progresiva y regresiva\n")
+    print("\nAfter applying forward and backward substitution\n")
     print("x:")
     for xi in x:
         print(f"{xi:.6f}")
@@ -149,7 +146,7 @@ def lu_factorization(A, b, tol=1e-12):
     return Awork, L, U, x
 
 
-# ---- Prueba local ----
+# ---- Local test ----
 if __name__ == "__main__":
     A = [
         [4,  -1,   0,  3],

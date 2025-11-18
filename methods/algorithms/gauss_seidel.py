@@ -1,122 +1,122 @@
 import numpy as np
 
 # -------------------------------------------------------------------
-# Utilidades: radio espectral y dominancia diagonal
+# Utilities: spectral radius and diagonal dominance
 # -------------------------------------------------------------------
-def radio_espectral(T: np.ndarray) -> float:
+def spectral_radius(T: np.ndarray) -> float:
     """
-    Calcula el radio espectral de una matriz T (máx |eigenvalor|).
+    Computes the spectral radius of a matrix T (max |eigenvalue|).
     """
     try:
-        eigenvalores = np.linalg.eigvals(T)
-        return float(np.max(np.abs(eigenvalores)))
+        eigenvalues = np.linalg.eigvals(T)
+        return float(np.max(np.abs(eigenvalues)))
     except np.linalg.LinAlgError:
-        return np.nan  # En caso de error numérico
+        return np.nan  # In case of numerical error
 
 
-def es_dominante_diagonal(A: np.ndarray) -> bool:
+def is_diagonally_dominant(A: np.ndarray) -> bool:
     """
-    Verifica dominancia diagonal por filas:
-        |a_ii| >= sum_{j != i} |a_ij|  para todas las filas i.
-    (Condición suficiente de convergencia para Jacobi / Gauss-Seidel.)
+    Checks row-wise diagonal dominance:
+        |a_ii| >= sum_{j != i} |a_ij|  for all rows i.
+    (Sufficient condition for convergence of Jacobi / Gauss-Seidel.)
     """
     n = A.shape[0]
     for i in range(n):
         diag = abs(A[i, i])
-        suma_no_diag = np.sum(np.abs(A[i, :])) - diag
-        if diag < suma_no_diag:
+        sum_off_diag = np.sum(np.abs(A[i, :])) - diag
+        if diag < sum_off_diag:
             return False
     return True
 
 
 # -------------------------------------------------------------------
-# Núcleo del método de Gauss-Seidel (forma matricial)
+# Core of the Gauss-Seidel method (matrix form)
 # -------------------------------------------------------------------
-def gauss_seidel_matricial(A, b, x0, tolerancia, niter):
+def gauss_seidel_matricial(A, b, x0, tolerance, niter):
     """
-    Implementación matricial del método de Gauss-Seidel:
+    Matrix implementation of the Gauss-Seidel method:
 
         A x = b
         A = D - L - U
         (D - L) x^{k+1} = U x^{k} + b
         x^{k+1} = (D - L)^{-1} U x^{k} + (D - L)^{-1} b
 
-    Parámetros
+    Parameters
     ----------
     A : array_like
-        Matriz de coeficientes (n x n).
+        Coefficient matrix (n x n).
     b : array_like
-        Vector de términos independientes (n,).
+        Right-hand side vector (n,).
     x0 : array_like
-        Aproximación inicial (n,).
-    tolerancia : float
-        Tolerancia para el criterio de parada (norma infinito del cambio).
+        Initial guess (n,).
+    tolerance : float
+        Tolerance for the stopping criterion (infinity norm of the change).
     niter : int
-        Máximo número de iteraciones.
+        Maximum number of iterations.
 
-    Retorna
+    Returns
     -------
     x : np.ndarray
-        Última aproximación del vector solución.
-    ro : float
-        Radio espectral de la matriz de iteración T.
+        Last approximation of the solution vector.
+    rho : float
+        Spectral radius of the iteration matrix T.
     """
-    # Formato de impresión
+    # Print formatting
     np.set_printoptions(precision=6, suppress=True, floatmode='fixed')
 
-    # Convertir a arreglos columna
+    # Convert to column arrays
     A = np.array(A, dtype=float)
     b = np.array(b, dtype=float).reshape(-1, 1)
     x0 = np.array(x0, dtype=float).reshape(-1, 1)
 
     n = A.shape[0]
 
-    # --------- COMPROBACIONES PREVIAS ---------
+    # --------- PRE-CHECKS ---------
 
-    # 1) Matriz cuadrada
+    # 1) Square matrix
     if A.shape[0] != A.shape[1]:
-        raise ValueError("Error: la matriz A debe ser cuadrada para aplicar Gauss-Seidel.")
+        raise ValueError("Error: matrix A must be square to apply Gauss-Seidel.")
 
-    # 2) Dimensión de b compatible
+    # 2) Compatible dimension for b
     if b.shape[0] != n:
         raise ValueError(
-            f"Error: dimensiones incompatibles entre A (n={n}) y b (m={b.shape[0]})."
+            f"Error: incompatible dimensions between A (n={n}) and b (m={b.shape[0]})."
         )
 
-    # 3) Diagonal no nula (requisito para (D-L)^{-1})
+    # 3) Non-zero diagonal (required for (D-L)^{-1})
     diag = np.diagonal(A)
     if np.any(np.isclose(diag, 0.0)):
         idx = int(np.where(np.isclose(diag, 0.0))[0][0])
         raise ValueError(
-            f"Error: Gauss-Seidel no se puede aplicar. "
-            f"La matriz A tiene un elemento diagonal nulo en la fila {idx+1} "
+            f"Error: Gauss-Seidel cannot be applied. "
+            f"Matrix A has a zero diagonal element at row {idx+1} "
             f"(a_{idx+1},{idx+1} = 0)."
         )
 
-    # --------- Descomposición A = D - L - U ---------
+    # --------- Decomposition A = D - L - U ---------
     D = np.diag(diag)
-    L = -np.tril(A, -1)  # parte inferior, con signo, de forma que A = D - L - U
-    U = -np.triu(A,  1)  # parte superior, con signo
+    L = -np.tril(A, -1)  # lower part with sign, so A = D - L - U
+    U = -np.triu(A,  1)  # upper part with sign
 
-    # Intentar invertir (D - L)
+    # Attempt to invert (D - L)
     try:
         inv_DL = np.linalg.inv(D - L)
     except np.linalg.LinAlgError:
         raise ValueError(
-            "Error numérico: La matriz (D - L) es singular. "
-            "No se puede aplicar Gauss-Seidel (no existe (D-L)^{-1})."
+            "Numerical error: matrix (D - L) is singular. "
+            "Gauss-Seidel cannot be applied ((D-L)^{-1} does not exist)."
         )
 
-    # Matriz de iteración y vector C para Gauss-Seidel
+    # Gauss-Seidel iteration matrix and vector
     T = inv_DL @ U
     C = inv_DL @ b
 
-    # Radio espectral
-    ro = radio_espectral(T)
+    # Spectral radius
+    rho = spectral_radius(T)
 
-    # --------- Impresión de información previa ---------
+    # --------- Print pre-analysis ---------
     print("Gauss-Seidel\n")
-    print("Resultados:\n")
+    print("Results:\n")
 
     print("T:")
     print(T)
@@ -124,70 +124,70 @@ def gauss_seidel_matricial(A, b, x0, tolerancia, niter):
     print("\nC:")
     print(C)
 
-    print(f"\nradio espectral (rho(T_G)):\n{ro:.6f}\n")
+    print(f"\nspectral radius (rho(T_G)):\n{rho:.6f}\n")
 
-    # Análisis de convergencia
-    if np.isnan(ro):
-        print("⚠️  Advertencia: no se pudo calcular el radio espectral de T (NaN).\n")
-    elif ro >= 1.0:
+    # Convergence analysis
+    if np.isnan(rho):
+        print("⚠️  Warning: could not compute the spectral radius of T (NaN).\n")
+    elif rho >= 1.0:
         print(
-            "⚠️  Advertencia: el radio espectral ρ(T_G) es mayor o igual que 1.\n"
-            "    El método de Gauss-Seidel no garantiza convergencia para este sistema.\n"
+            "⚠️  Warning: spectral radius ρ(T_G) is greater than or equal to 1.\n"
+            "    Gauss-Seidel does NOT guarantee convergence for this system.\n"
         )
     else:
-        print("✅ Condición teórica de convergencia cumplida: ρ(T_G) < 1.\n")
+        print("✅ Theoretical convergence condition satisfied: ρ(T_G) < 1.\n")
 
-    # Dominancia diagonal (condición suficiente)
-    if es_dominante_diagonal(A):
-        print("✅ La matriz A es diagonalmente dominante (fila a fila).\n")
+    # Diagonal dominance (sufficient condition)
+    if is_diagonally_dominant(A):
+        print("✅ Matrix A is row-wise diagonally dominant.\n")
     else:
         print(
-            "⚠️  La matriz A no es estrictamente diagonalmente dominante.\n"
-            "    Gauss-Seidel podría no converger, aunque esta condición no es necesaria.\n"
+            "⚠️  Matrix A is NOT strictly diagonally dominant.\n"
+            "    Gauss-Seidel may fail to converge, although this condition is not necessary.\n"
         )
 
-    # --------- Iteración de Gauss-Seidel (forma matricial) ---------
-    iteracion = 0
-    error = 1.0  # error inicial
+    # --------- Gauss-Seidel iteration (matrix form) ---------
+    iteration = 0
+    error = 1.0  # initial error
 
     print("| iter |     E      | x components...")
     print("-" * 70)
 
-    # Iteración 0
+    # Iteration 0
     x_str = "  ".join(f"{val:.6f}" for val in x0.flatten())
-    print(f"|  {iteracion:>3} | {'-':>10} | {x_str}")
+    print(f"|  {iteration:>3} | {'-':>10} | {x_str}")
 
-    while error > tolerancia and iteracion < niter:
-        # Actualización Gauss-Seidel en forma matricial
+    while error > tolerance and iteration < niter:
+        # Matrix-form Gauss-Seidel update
         x1 = T @ x0 + C
         error = float(np.linalg.norm(x1 - x0, np.inf))
 
         x0 = x1
-        iteracion += 1
+        iteration += 1
 
         x_str = "  ".join(f"{val:.6f}" for val in x0.flatten())
-        print(f"| {iteracion:>4} | {error:>10.1e} | {x_str}")
+        print(f"| {iteration:>4} | {error:>10.1e} | {x_str}")
 
     print("-" * 70)
-    if error <= tolerancia:
-        print(f"\nGauss-Seidel matricial: solución encontrada en {iteracion} iteraciones.")
-        print("Solución aproximada x:")
+    if error <= tolerance:
+        print(f"\nMatrix Gauss-Seidel: solution found in {iteration} iterations.")
+        print("Approximate solution x:")
         for val in x0.flatten():
             print(f"{val:.6f}")
     else:
-        print(f"\nGauss-Seidel matricial: fracasó en {niter} iteraciones.")
-        print("Última aproximación x:")
+        print(f"\nMatrix Gauss-Seidel: failed after {niter} iterations.")
+        print("Last approximation x:")
         for val in x0.flatten():
             print(f"{val:.6f}")
 
-    return x0.flatten(), ro
+    return x0.flatten(), rho
 
 
 # -------------------------------------------------------------------
-# WRAPPERS para el invocador del sitio (Django)
+# WRAPPERS for the site invoker (Django)
 # -------------------------------------------------------------------
 def _extract_extras(extras):
-    """Toma extras del sitio y pone defaults razonables."""
+    """Takes extras from the site and assigns reasonable defaults."""
     if extras is None:
         extras = {}
     tol = float(extras.get("tol", 1e-7))
@@ -197,12 +197,12 @@ def _extract_extras(extras):
 
 
 def _coerce_vec(v, n):
-    """Convierte a vector (n,) con ceros por defecto."""
+    """Converts to a vector (n,) with zero-padding defaults."""
     if v is None:
         return np.zeros(n, dtype=float)
     arr = np.array(v, dtype=float).reshape(-1)
     if arr.size != n:
-        # si vino mal dimensionado, truncamos/rellenamos
+        # if dimension is wrong, we truncate/pad
         out = np.zeros(n, dtype=float)
         out[:min(n, arr.size)] = arr[:min(n, arr.size)]
         return out
@@ -210,16 +210,16 @@ def _coerce_vec(v, n):
 
 
 def run(A, b, extras=None):
-    """Nombre genérico que el sitio detecta. NO imprime nada extra aparte del método."""
+    """Generic name detected by the site. DOES NOT print anything extra besides the method."""
     A = np.array(A, dtype=float)
     b = np.array(b, dtype=float).reshape(-1)
     tol, nmax, x0_in = _extract_extras(extras)
     x0 = _coerce_vec(x0_in, A.shape[0])
-    # Llama al núcleo, que imprime toda la consola:
+    # Call the core method, which prints the console:
     gauss_seidel_matricial(A, b, x0, tol, nmax)
 
 
-# aliases adicionales por si el invocador buscara otros nombres
+# additional aliases in case the invoker searches for other names
 def solve(A, b, extras=None):
     run(A, b, extras)
 
