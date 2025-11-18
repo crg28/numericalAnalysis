@@ -64,6 +64,39 @@
     <!-- RIGHT SIDE -->
     <div id="graph-card" class="w-[360px] hidden bg-white shadow rounded-2xl p-6 sticky top-10">
       <h3 class="text-xl font-semibold mb-3">Graph</h3>
+
+      <!-- 🔹 RANGO DE LA GRÁFICA -->
+      <div class="flex gap-2 mb-3 text-sm">
+        <div class="flex flex-col">
+          <label for="x-min" class="text-gray-600">x min</label>
+          <input id="x-min" type="number" step="any" value="-10"
+                 class="border rounded-lg px-2 py-1 text-sm">
+        </div>
+
+        <div class="flex flex-col">
+          <label for="x-max" class="text-gray-600">x max</label>
+          <input id="x-max" type="number" step="any" value="10"
+                 class="border rounded-lg px-2 py-1 text-sm">
+        </div>
+      </div>
+
+      <div class="flex gap-2 mb-3 text-sm">
+        <div class="flex flex-col">
+          <label for="y-min" class="text-gray-600">y min</label>
+          <input id="y-min" type="number" step="any" value=""
+                 placeholder="auto"
+                 class="border rounded-lg px-2 py-1 text-sm">
+        </div>
+
+        <div class="flex flex-col">
+          <label for="y-max" class="text-gray-600">y max</label>
+          <input id="y-max" type="number" step="any" value=""
+                 placeholder="auto"
+                 class="border rounded-lg px-2 py-1 text-sm">
+        </div>
+      </div>
+      <!-- 🔹 FIN RANGO -->
+
       <div id="plot-area" class="w-full h-[260px]"></div>
     </div>
 
@@ -78,15 +111,20 @@
 </div>
 {% endblock %}
 
-
 {% block extra_js %}
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const plotBtn = document.getElementById("plot-btn");
-  const plotArea = document.getElementById("plot-area");
+
+  const plotBtn   = document.getElementById("plot-btn");
+  const plotArea  = document.getElementById("plot-area");
   const graphCard = document.getElementById("graph-card");
+
+  const xMinInput = document.getElementById("x-min");
+  const xMaxInput = document.getElementById("x-max");
+  const yMinInput = document.getElementById("y-min");
+  const yMaxInput = document.getElementById("y-max");
 
   plotBtn.addEventListener("click", () => {
 
@@ -107,7 +145,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const traces = [];
 
-    // ----------- CURVAS DEL SPLINE (xs, ys) -------------
     data.segments.forEach(seg => {
       traces.push({
         x: seg.xs,
@@ -119,7 +156,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // ---------------- PUNTOS ORIGINALES ------------------
     const px = data.points.map(p => p.x);
     const py = data.points.map(p => p.y);
 
@@ -133,12 +169,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     graphCard.classList.remove("hidden");
 
-    Plotly.newPlot(plotArea, traces, {
+    const minX = Math.min(...px);
+    const maxX = Math.max(...px);
+    const minY = Math.min(...py);
+    const maxY = Math.max(...py);
+
+    if (!xMinInput.value) xMinInput.value = minX;
+    if (!xMaxInput.value) xMaxInput.value = maxX;
+    if (!yMinInput.value) yMinInput.value = minY;
+    if (!yMaxInput.value) yMaxInput.value = maxY;
+
+    let xMin = parseFloat(xMinInput.value);
+    let xMax = parseFloat(xMaxInput.value);
+    let yMin = parseFloat(yMinInput.value);
+    let yMax = parseFloat(yMaxInput.value);
+
+    const layout = {
       margin: { t: 10, r: 10, l: 40, b: 40 },
       xaxis: { title: "x" },
       yaxis: { title: "y" }
-    });
+    };
+
+    if (!isNaN(xMin) && !isNaN(xMax) && xMin < xMax) {
+      layout.xaxis.range = [xMin, xMax];
+    }
+    if (!isNaN(yMin) && !isNaN(yMax) && yMin < yMax) {
+      layout.yaxis.range = [yMin, yMax];
+    }
+
+    Plotly.newPlot(plotArea, traces, layout);
   });
+
 });
 </script>
 {% endblock %}

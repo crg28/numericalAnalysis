@@ -69,6 +69,38 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
 
+  /* Dropdown historial */
+  .fx-history-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    padding: 4px 0;
+    font-size: 0.85rem;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 50;
+    min-width: 220px;
+  }
+  .fx-history-item {
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .fx-history-item:hover {
+    background: #f3f4f6;
+  }
+  .fx-history-empty {
+    padding: 4px 8px;
+    color: #9ca3af;
+    font-style: italic;
+  }
+
   @media (max-width: 900px) {
     .plotter-layout {
       grid-template-columns: 1fr;
@@ -85,9 +117,10 @@
   <aside class="plotter-sidebar">
 
     <!-- f(x) -->
-    <div class="plotter-input-row">
+    <div class="plotter-input-row" style="position:relative;">
       <span class="plotter-input-bullet">f(x) =</span>
       <input id="fx-input" type="text" placeholder="e.g. sin(x), x^3 - 2*x, exp(-x)*cos(3x)">
+      <div id="fx-history" class="fx-history-dropdown hidden"></div>
     </div>
 
     <!-- Dominio: x min / x max -->
@@ -135,16 +168,69 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const fxInput   = document.getElementById("fx-input");
-    const xMinInput = document.getElementById("x-min");   // 🔹 nuevo
-    const xMaxInput = document.getElementById("x-max");   // 🔹 nuevo
+    const xMinInput = document.getElementById("x-min");
+    const xMaxInput = document.getElementById("x-max");
     const plotBtn   = document.getElementById("plot-btn");
     const graphDiv  = document.getElementById("plotter-graph");
+    const historyBox = document.getElementById("fx-history");
+    const storageKey = "na_hist_plotter_fx";
+
+    function loadHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(storageKey) || "[]");
+        } catch {
+            return [];
+        }
+    }
+    function saveHistory(items) {
+        localStorage.setItem(storageKey, JSON.stringify(items));
+    }
+    function pushHistory(expr) {
+        expr = (expr || "").trim();
+        if (!expr) return;
+        let hist = loadHistory();
+        const idx = hist.indexOf(expr);
+        if (idx >= 0) hist.splice(idx, 1);
+        hist.unshift(expr);
+        if (hist.length > 20) hist = hist.slice(0, 20);
+        saveHistory(hist);
+    }
+
+    function showHistory() {
+        const hist = loadHistory();
+        if (!hist.length) {
+            historyBox.innerHTML = '<div class="fx-history-empty">No history yet</div>';
+        } else {
+            historyBox.innerHTML = hist
+                .map(h => `<div class="fx-history-item">${h}</div>`)
+                .join("");
+        }
+        historyBox.classList.remove("hidden");
+    }
+    function hideHistory() {
+        historyBox.classList.add("hidden");
+    }
+
+    fxInput.addEventListener("focus", showHistory);
+    fxInput.addEventListener("click", showHistory);
+
+    historyBox.addEventListener("click", (e) => {
+        const item = e.target.closest(".fx-history-item");
+        if (!item) return;
+        fxInput.value = item.textContent.trim();
+        hideHistory();
+    });
+
+    document.addEventListener("click", (e) => {
+        if (e.target === fxInput) return;
+        if (historyBox.contains(e.target)) return;
+        hideHistory();
+    });
 
     function plotFunction() {
         const expr = fxInput.value.trim();
         if (!expr) return;
 
-        // 1. Compilar la función
         let f;
         try {
             f = math.compile(expr);
@@ -153,7 +239,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // 2. Leer dominio seleccionado por el usuario
         let xMin = parseFloat(xMinInput.value);
         let xMax = parseFloat(xMaxInput.value);
 
@@ -161,18 +246,15 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("Please enter valid numeric values for x min and x max.");
             return;
         }
-
         if (xMin >= xMax) {
             alert("x min must be strictly less than x max.");
             return;
         }
 
-        // 3. Construir el rango de x en el dominio elegido
-        const nPoints = 400;  // puedes ajustar este valor si quieres más/menos resolución
+        const nPoints = 400;
         const step = (xMax - xMin) / nPoints;
         const xs = math.range(xMin, xMax, step).toArray();
 
-        // 4. Evaluar f(x) en cada punto
         let ys = [];
         try {
             ys = xs.map(x => {
@@ -184,7 +266,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // 5. Dibujar con Plotly
         Plotly.newPlot(graphDiv, [{
             x: xs,
             y: ys,
@@ -195,13 +276,11 @@ document.addEventListener("DOMContentLoaded", function () {
             xaxis: { title: "x", zeroline: true },
             yaxis: { title: "f(x)", zeroline: true }
         });
+
+        pushHistory(expr);
     }
 
     plotBtn.addEventListener("click", plotFunction);
-
-    // Opcional: plotea algo por defecto al cargar, por ejemplo f(x)=x
-    // fxInput.value = "x";
-    // plotFunction();
 });
 </script>
 {% endblock %}

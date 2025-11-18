@@ -2,23 +2,22 @@
 {% load i18n %}
 
 {% block title %}{{ method.name }}{% endblock %}
+
 {% block extra_css %}
 <style>
 
-  /* ===== Contenedor general de la página ===== */
   .root-page {
       max-width: 1400px;
       margin: 0 auto;
       padding-top: 10px;
   }
 
-  /* ===== Grid principal: IZQ (form) + DER (graficador) ===== */
   .root-layout {
       display: grid;
-      grid-template-columns: 200px 1fr;  /* ← ajusta 420 si quieres más/menos ancho de la izquierda */
-      gap: 20rem;
+      grid-template-columns: 240px 1fr;
+      gap: 4rem;
       align-items: flex-start;
-      margin-top: 0.5rem;   /* separación entre el título y el grid */
+      margin-top: 0.5rem;
       margin-bottom: 1rem;
   }
 
@@ -26,68 +25,116 @@
       min-width: 0;
   }
 
-
-  /* ===== Caja beige de sugerencias, ahora FLOTANTE en la parte superior derecha ===== */
-.plotter-hints-root {
-    position: absolute;   /* ← Ahora sí flota dentro del panel */
-    top: 12px;
-    right: 12px;
-
-    width: 240px;
-
-    background: #fff4dd;
-    border: 1px solid #ffd79c;
-    border-radius: 8px;
-    padding: 0.6rem 0.8rem;
-    font-size: 0.82rem;
-
-    z-index: 5;           /* queda encima pero sin tapar la gráfica */
-}
-
-/* listas más compactas */
-.plotter-hints-root ul {
-    margin: 0.3rem 0 0.3rem 1rem;
-    padding: 0;
-}
-
-
-
-  /* ===== Área donde se dibuja la gráfica ===== */
-  #root-graph {
-      width: 100%;
-      height: 300px; 
-      margin-top: 60px;   /* ← altura de la gráfica; súbela o bájala aquí */
-      
+  /* Historial */
+  .history-box {
+      margin-bottom: 10px;
   }
 
-  /* Este panel será el "padre" donde flotará la cajita beige */
-.root-graph-panel {
-    position:relative  ;
-    height: 420px;    /* ← MUY IMPORTANTE */
-    width: 100%;
-    max-width: 900px;        /* ancho recomendado */
-    background: white;  
-    padding: 1.5rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    margin: 0 auto;
-    margin-top: -20px;
-}
+  .history-box select {
+      width: 100%;
+      padding: 6px;
+      border-radius: 6px;
+  }
 
-  /* ===== Versión responsive para pantallas pequeñas ===== */
+  .save-btn {
+      margin-top: 5px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+  }
+
+  /* Caja de notas */
+  .root-info-box {
+      background: #fff7e6;
+      border: 1px solid #ffd28c;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-top: 1.2rem;
+      font-size: 0.9rem;
+  }
+
+  .root-info-box h4 {
+      margin-top: 0;
+      margin-bottom: 0.4rem;
+      font-size: 1rem;
+      font-weight: bold;
+  }
+
+  /* Gráfica */
+  #root-graph {
+      width: 100%;
+      height: 300px;
+      margin-top: 12px;
+  }
+
+  .root-graph-panel {
+      position: relative;
+      height: 460px;
+      width: 100%;
+      max-width: 900px;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin: 0 auto;
+      margin-top: -20px;
+  }
+
+  .plotter-hints-root {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 240px;
+      background: #fff4dd;
+      border: 1px solid #ffd79c;
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.82rem;
+      z-index: 5;
+  }
+
+  /* Controles de rango */
+  .range-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+  }
+
+  .range-row div {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.8rem;
+  }
+
+  .range-row label {
+      color: #555;
+      margin-bottom: 2px;
+  }
+
+  .range-row input {
+      width: 90px;
+      padding: 2px 4px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.8rem;
+  }
+
   @media (max-width: 1000px) {
       .root-layout {
-          grid-template-columns: 1fr; /* pasa a una sola columna */
+          grid-template-columns: 1fr;
       }
       .root-graph-panel {
-          margin-top: 1rem;  /* en móvil no usamos el margin-top negativo */
+          margin-top: 1rem;
+          height: auto;
       }
       #root-graph {
           height: 300px;
       }
   }
+
 </style>
 {% endblock %}
+
 
 
 {% block content %}
@@ -95,12 +142,9 @@
 
     <h1>{{ method.name }}</h1>
 
-    <!-- ================================================
-         GRID PRINCIPAL: IZQUIERDA (form) + DERECHA (gráfica)
-         ================================================= -->
     <div class="root-layout">
 
-        <!-- ************* COLUMNA IZQUIERDA ************* -->
+        <!-- IZQUIERDA -->
         <div class="root-left">
 
             {% if help_items %}
@@ -114,13 +158,19 @@
 
             <h3>Input</h3>
 
+            <!-- Historial -->
+            <div class="history-box">
+                <label><strong>History:</strong></label>
+                <select id="fx-history"></select>
+                <button class="save-btn" id="save-fx">Save expression</button>
+            </div>
+
+            <!-- Form de Django (ya incluye f(x)) -->
             <form method="post" style="margin-bottom:1rem;">
                 {% csrf_token %}
                 {{ form.as_p }}
 
                 <button type="submit">{% trans "Solve" %}</button>
-
-                <!-- Botón que activa la gráfica -->
                 <button type="button" id="root-plot-btn">📈 Graph</button>
             </form>
 
@@ -129,18 +179,99 @@
                 <pre>{{ error }}</pre>
             {% endif %}
 
+            <!-- Notas / advertencias -->
+            <div class="root-info-box">
+              <h4>Notes & warnings</h4>
+
+              <p><strong>General note:</strong> Always avoid division by 0 when evaluating formulas.</p>
+
+              {% with method.slug|lower as slug %}
+
+                {% if method.kind == 'incremental_search' or 'incremental' in slug %}
+                  <ul>
+                    <li>Make sure the function is continuous along the tested interval.</li>
+                    <li>Check that f(x) changes sign somewhere in the interval; otherwise a root is not guaranteed.</li>
+                  </ul>
+
+                {% elif method.kind == 'bisection' or 'bisection' in slug %}
+                  <ul>
+                    <li>Ensure that f(x) is continuous on the interval [a, b].</li>
+                    <li>You should have f(a)·f(b) &lt; 0; if not, you cannot guarantee a root in [a, b].</li>
+                  </ul>
+
+                {% elif method.kind == 'false_position' or 'false' in slug %}
+                  <ul>
+                    <li>The function should be continuous over the working interval.</li>
+                    <li>Ideally f(a) and f(b) have opposite signs; otherwise the existence of a root is uncertain.</li>
+                  </ul>
+
+                {% elif method.kind == 'newton' or 'newton' in slug %}
+                  <ul>
+                    <li>Make sure f(x) is continuous near the expected root.</li>
+                    <li>Choose an initial guess x₀ reasonably close to the root; distant starting points may cause divergence.</li>
+                    <li>If f′(x) becomes 0 at any step, the Newton update is undefined (division by 0) and the iteration must be stopped or restarted.</li>
+                    <li>Ensure that f(x) is differentiable on the interval where you apply the method.</li>
+                  </ul>
+
+                {% elif method.kind == 'fixed_point' or 'fixed' in slug %}
+                  <ul>
+                    <li>Work on an interval [a, b] where g(x) is continuous.</li>
+                    <li>Try to ensure that if x is in [a, b], then g(x) also stays in [a, b].</li>
+                    <li>For convergence it is desirable that |g′(x)| &lt; 1 near the fixed point.</li>
+                  </ul>
+
+                {% elif method.kind == 'secant' or 'secant' in slug %}
+                  <ul>
+                    <li>Make sure f(x) is continuous in the region where you are searching for the root.</li>
+                    <li>Choose starting points so that the root is reasonably between them; otherwise the method may fail or converge to another point.</li>
+                    <li>The method assumes a simple root; multiple roots can slow convergence significantly.</li>
+                  </ul>
+
+                {% elif method.kind == 'multiple_roots' or 'multiple' in slug %}
+                  <ul>
+                    <li>Ensure that f(x), f′(x) and f″(x) are continuous near the root.</li>
+                    <li>Watch the denominators in the iteration formula; avoid values where they become 0 or extremely small.</li>
+                    <li>This algorithm is intended for multiple roots; if the root is actually simple, behaviour may resemble standard Newton and be slower than expected.</li>
+                  </ul>
+
+                {% endif %}
+              {% endwith %}
+            </div>
+
         </div>
 
-        <!-- ************** COLUMNA DERECHA ─ GRÁFICADOR ************** -->
+        <!-- DERECHA -->
         <aside class="root-graph-panel">
 
             <h3>Quick graph of f(x)</h3>
-            <p style="font-size:1rem; align-items:center;">Uses the current f(x) from the form.</p>
+            <p style="font-size:1rem;">Uses the current f(x) from the form.</p>
 
-            <!-- Caja de sugerencias -->
+            <!-- Controles de rango -->
+            <div class="range-row">
+              <div>
+                <label for="root-x-min">x min</label>
+                <input id="root-x-min" type="number" step="any" value="-10">
+              </div>
+              <div>
+                <label for="root-x-max">x max</label>
+                <input id="root-x-max" type="number" step="any" value="10">
+              </div>
+            </div>
+
+            <div class="range-row">
+              <div>
+                <label for="root-y-min">y min</label>
+                <input id="root-y-min" type="number" step="any" placeholder="auto">
+              </div>
+              <div>
+                <label for="root-y-max">y max</label>
+                <input id="root-y-max" type="number" step="any" placeholder="auto">
+              </div>
+            </div>
+
             <div class="plotter-hints-root">
                 <strong>Function syntax:</strong>
-                <ul style="margin-top:4px;">
+                <ul>
                     <li><code>exp(x)</code> for e<sup>x</sup></li>
                     <li><code>log(x)</code> for natural log</li>
                     <li><code>sqrt(x)</code>, <code>abs(x)</code></li>
@@ -149,15 +280,12 @@
                 </ul>
             </div>
 
-            <!-- Contenedor donde dibuja Plotly -->
             <div id="root-graph"></div>
 
         </aside>
 
     </div>
-    <!-- ======================
-         CONSOLA DE RESULTADOS
-         ====================== -->
+
     {% if console %}
         <h3>Console output</h3>
         <pre>{{ console }}</pre>
@@ -166,39 +294,95 @@
 </div>
 {% endblock %}
 
+
+
 {% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.5.0/math.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 <script>
-/* *****************************************************
-   SISTEMA DE GRAFICADO ─ USAMOS math.js + Plotly
-   ***************************************************** */
 document.addEventListener("DOMContentLoaded", () => {
 
-    const btn = document.getElementById("root-plot-btn");
-    const graphDiv = document.getElementById("root-graph");
+    // ---- Historial por método ----
+    const historyKey = "roots_hist_" + "{{ method.slug }}";
+    const fxInput = document.querySelector("input[name='fx']");
+    const fxHistory = document.getElementById("fx-history");
+    const saveFx = document.getElementById("save-fx");
+
+    function loadHistory() {
+        const data = JSON.parse(localStorage.getItem(historyKey) || "[]");
+        fxHistory.innerHTML = "";
+        data.forEach(expr => {
+            const opt = document.createElement("option");
+            opt.textContent = expr;
+            fxHistory.appendChild(opt);
+        });
+    }
+
+    function saveExpression() {
+        if (!fxInput) return;
+        let expr = fxInput.value.trim();
+        if (!expr) return;
+        let data = JSON.parse(localStorage.getItem(historyKey) || "[]");
+        if (!data.includes(expr)) data.unshift(expr);
+        localStorage.setItem(historyKey, JSON.stringify(data));
+        loadHistory();
+    }
+
+    fxHistory.addEventListener("change", () => {
+        if (!fxInput) return;
+        fxInput.value = fxHistory.value;
+    });
+
+    saveFx.addEventListener("click", saveExpression);
+
+    loadHistory();
+
+    // ---- Graficador ----
+    const btn       = document.getElementById("root-plot-btn");
+    const graphDiv  = document.getElementById("root-graph");
+
+    const xMinInput = document.getElementById("root-x-min");
+    const xMaxInput = document.getElementById("root-x-max");
+    const yMinInput = document.getElementById("root-y-min");
+    const yMaxInput = document.getElementById("root-y-max");
 
     btn.addEventListener("click", () => {
 
-        /* Obtener la función escrita por el usuario */
-        const fxField = document.querySelector("input[name='fx']");
-        if (!fxField) return;
+        if (!fxInput) {
+            alert("No fx field found in the form.");
+            return;
+        }
 
-        const expr = fxField.value.trim();
+        const expr = fxInput.value.trim();
         if (!expr) {
             alert("Enter a function first.");
             return;
         }
 
-        /* Compilar con math.js */
+        // Leer rango X
+        let xMin = parseFloat(xMinInput.value);
+        let xMax = parseFloat(xMaxInput.value);
+
+        if (isNaN(xMin)) xMin = -10;
+        if (isNaN(xMax)) xMax = 10;
+
+        if (xMin >= xMax) {
+            alert("x min must be strictly less than x max.");
+            return;
+        }
+
         let f;
         try {
             f = math.compile(expr);
         } catch (err) {
-            alert("Invalid function. Check syntax.\n\nExamples:\nexp(x), log(x), sqrt(x), sin(x)^2");
+            alert("Invalid expression.");
             return;
         }
 
-        /* Generar puntos automáticos entre [-10, 10] */
-        const xs = math.range(-10, 10, 0.03).toArray();
+        const nPoints = 400;
+        const step = (xMax - xMin) / nPoints;
+        const xs = math.range(xMin, xMax, step).toArray();
 
         const ys = xs.map(x => {
             try {
@@ -209,17 +393,25 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        /* Dibujar gráfica */
+        // Layout y rango en Y si el usuario lo define
+        const layout = {
+            margin: { t: 20, r: 20, l: 45, b: 40 },
+            xaxis: { title: "x", range: [xMin, xMax] },
+            yaxis: { title: "f(x)" }
+        };
+
+        let yMin = parseFloat(yMinInput.value);
+        let yMax = parseFloat(yMaxInput.value);
+        if (!isNaN(yMin) && !isNaN(yMax) && yMin < yMax) {
+            layout.yaxis.range = [yMin, yMax];
+        }
+
         Plotly.newPlot(graphDiv, [{
             x: xs,
             y: ys,
             mode: "lines",
             line: { color: "#1a73e8", width: 2 }
-        }], {
-            margin: { t: 20, r: 20, l: 45, b: 40 },
-            xaxis: { title: "x", zeroline: true },
-            yaxis: { title: "f(x)", zeroline: true }
-        });
+        }], layout);
     });
 
 });

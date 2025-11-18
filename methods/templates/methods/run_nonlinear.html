@@ -91,30 +91,55 @@
     <div class="note" style="margin-top:16px;">
       <h4>What is this method for?</h4>
       <p>
-        {% if method.kind == 'bisection' %}Find a root by repeatedly bisecting an interval where f(x) changes sign.{% endif %}
-        {% if method.kind == 'newton' %}Root-finding using the tangent line; requires f′(x).{% endif %}
-        {% if method.kind == 'secant' %}Derivative-free root-finding using two previous points.{% endif %}
-        {% if method.kind == 'fixed_point' %}Solve x = g(x) by iteration; converges if |g′(x*)| < 1 near the fixed point.{% endif %}
+        {% if "bisection" in method.slug|lower %}
+          Find a root by repeatedly bisecting an interval where f(x) changes sign.
+        {% elif "newton" in method.slug|lower %}
+          Find a root using the tangent line: x_{n+1} = x_n - f(x_n)/f'(x_n).
+        {% elif "secant" in method.slug|lower %}
+          Derivative-free root finding using the slope through two previous points.
+        {% elif method.kind == 'fixed_point' or "fixed" in method.slug|lower %}
+          Solve x = g(x) by iteration; convergence depends on how “contractive” g(x) is.
+        {% elif "multiple" in method.slug|lower %}
+          Variant of Newton’s method designed for multiple roots.
+        {% endif %}
       </p>
-      <h4>Recommendations & warnings</h4>
-      <ul>
-        {% if method.kind == 'bisection' %}
-          <li>Require f(a)·f(b) &lt; 0.</li>
-          <li>Converges linearly; robust but slower.</li>
-        {% endif %}
-        {% if method.kind == 'newton' %}
-          <li>Pick x₀ near the root; may diverge otherwise.</li>
-          <li>Need derivative continuity near the root.</li>
-        {% endif %}
-        {% if method.kind == 'secant' %}
-          <li>Requires two starting points x₀, x₁.</li>
-          <li>Superlinear order ≈ 1.618; can fail if slope ≈ 0.</li>
-        {% endif %}
-        {% if method.kind == 'fixed_point' %}
-          <li>Choose g(x) such that |g′(x*)| &lt; 1.</li>
-          <li>Provide a good initial guess x₀.</li>
-        {% endif %}
-      </ul>
+
+      <h4>Notes & warnings</h4>
+      <p><strong>General note:</strong> Always avoid division by 0 when evaluating formulas.</p>
+
+      {# --- NEWTON --- #}
+      {% if "newton" in method.slug|lower %}
+        <ul>
+          <li>Make sure f(x) is continuous near the expected root.</li>
+          <li>Choose an initial guess x₀ close to the root; a poor choice can lead to divergence or convergence to a different root.</li>
+          <li>If f′(x) becomes 0 at any step, the update formula fails (division by 0) and the iteration must be stopped or restarted.</li>
+          <li>Ensure that f(x) is differentiable on the interval where the method is applied.</li>
+        </ul>
+
+      {# --- SECANT --- #}
+      {% elif "secant" in method.slug|lower %}
+        <ul>
+          <li>Use this method when f(x) is continuous near the root but computing f′(x) is inconvenient.</li>
+          <li>Pick two starting points so that the root lies “between” them; bad choices may cause divergence.</li>
+          <li>If the slope between the last two points is very small, the next step can become extremely large or unstable.</li>
+        </ul>
+
+      {# --- FIXED POINT --- #}
+      {% elif method.kind == 'fixed_point' or "fixed" in method.slug|lower %}
+        <ul>
+          <li>Define g(x) so that it is continuous on the interval of interest.</li>
+          <li>It is safer when, starting from x₀, the iterates x_{n+1} = g(x_n) stay inside the same interval.</li>
+          <li>For convergence, check that |g′(x)| is less than 1 near the fixed point.</li>
+        </ul>
+
+      {# --- MULTIPLE ROOTS --- #}
+      {% elif "multiple" in method.slug|lower %}
+        <ul>
+          <li>Ensure that f(x), f′(x) and f″(x) are continuous around the root.</li>
+          <li>Monitor denominators in the iteration formula; avoid values where they become 0 or extremely small.</li>
+          <li>Use this method when you suspect a multiple root and the theoretical conditions of the formula are satisfied.</li>
+        </ul>
+      {% endif %}
     </div>
   </aside>
 </div>
