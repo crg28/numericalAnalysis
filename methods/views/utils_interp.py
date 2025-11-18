@@ -594,7 +594,7 @@ def run_newton_interpolation(request, slug):
         form = LagrangeForm()
         return render(request, "methods/run_interp.html", {
             "form": form,
-            "method_name": "Interpolación de Newton (DEBUG)",
+            "method_name": "Interpolación de Newton",
             "poly": None,
             "eval_result": None,
             "diff_table": None,
@@ -608,7 +608,7 @@ def run_newton_interpolation(request, slug):
         if not form.is_valid():
             return render(request, "methods/run_interp.html", {
                 "form": form,
-                "method_name": "Interpolación de Newton (DEBUG)",
+                "method_name": "Interpolación de Newton",
                 "poly": None,
                 "eval_result": None,
                 "diff_table": None,
@@ -623,7 +623,7 @@ def run_newton_interpolation(request, slug):
         if len(x) != len(y):
             return render(request, "methods/run_interp.html", {
                 "form": form,
-                "method_name": "Interpolación de Newton (DEBUG)",
+                "method_name": "Interpolación de Newton",
                 "poly": None,
                 "eval_result": None,
                 "diff_table": None,
@@ -676,7 +676,7 @@ def run_newton_interpolation(request, slug):
 
         return render(request, "methods/run_interp.html", {
             "form": form,
-            "method_name": "Interpolación de Newton (DEBUG)",
+            "method_name": "Interpolación de Newton",
             "poly": poly_text,
             "eval_result": eval_result,
             "diff_table": diff_table,
