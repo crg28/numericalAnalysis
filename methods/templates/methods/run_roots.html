@@ -64,12 +64,12 @@
   #root-graph {
       width: 100%;
       height: 300px;
-      margin-top: 12px;
+      margin-top: 60px;
   }
 
   .root-graph-panel {
       position: relative;
-      height: 460px;
+      height: 420px;
       width: 100%;
       max-width: 900px;
       background: white;
@@ -93,39 +93,12 @@
       z-index: 5;
   }
 
-  /* Controles de rango */
-  .range-row {
-      display: flex;
-      gap: 12px;
-      margin-top: 4px;
-  }
-
-  .range-row div {
-      display: flex;
-      flex-direction: column;
-      font-size: 0.8rem;
-  }
-
-  .range-row label {
-      color: #555;
-      margin-bottom: 2px;
-  }
-
-  .range-row input {
-      width: 90px;
-      padding: 2px 4px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 0.8rem;
-  }
-
   @media (max-width: 1000px) {
       .root-layout {
           grid-template-columns: 1fr;
       }
       .root-graph-panel {
           margin-top: 1rem;
-          height: auto;
       }
       #root-graph {
           height: 300px;
@@ -185,26 +158,31 @@
 
               <p><strong>General note:</strong> Always avoid division by 0 when evaluating formulas.</p>
 
+              {# usamos slug en minúsculas para ser más tolerantes a nombres #}
               {% with method.slug|lower as slug %}
 
+                {# 1. Búsquedas incrementales #}
                 {% if method.kind == 'incremental_search' or 'incremental' in slug %}
                   <ul>
                     <li>Make sure the function is continuous along the tested interval.</li>
                     <li>Check that f(x) changes sign somewhere in the interval; otherwise a root is not guaranteed.</li>
                   </ul>
 
+                {# 2. Bisección #}
                 {% elif method.kind == 'bisection' or 'bisection' in slug %}
                   <ul>
                     <li>Ensure that f(x) is continuous on the interval [a, b].</li>
                     <li>You should have f(a)·f(b) &lt; 0; if not, you cannot guarantee a root in [a, b].</li>
                   </ul>
 
+                {# 3. Regla falsa (false position) #}
                 {% elif method.kind == 'false_position' or 'false' in slug %}
                   <ul>
                     <li>The function should be continuous over the working interval.</li>
                     <li>Ideally f(a) and f(b) have opposite signs; otherwise the existence of a root is uncertain.</li>
                   </ul>
 
+                {# 4. Newton #}
                 {% elif method.kind == 'newton' or 'newton' in slug %}
                   <ul>
                     <li>Make sure f(x) is continuous near the expected root.</li>
@@ -213,6 +191,7 @@
                     <li>Ensure that f(x) is differentiable on the interval where you apply the method.</li>
                   </ul>
 
+                {# 5. Punto fijo (fixed point) — si algún método de raíces usa este template #}
                 {% elif method.kind == 'fixed_point' or 'fixed' in slug %}
                   <ul>
                     <li>Work on an interval [a, b] where g(x) is continuous.</li>
@@ -220,6 +199,7 @@
                     <li>For convergence it is desirable that |g′(x)| &lt; 1 near the fixed point.</li>
                   </ul>
 
+                {# 6. Secante #}
                 {% elif method.kind == 'secant' or 'secant' in slug %}
                   <ul>
                     <li>Make sure f(x) is continuous in the region where you are searching for the root.</li>
@@ -227,11 +207,12 @@
                     <li>The method assumes a simple root; multiple roots can slow convergence significantly.</li>
                   </ul>
 
+                {# 7. Multiple roots #}
                 {% elif method.kind == 'multiple_roots' or 'multiple' in slug %}
                   <ul>
                     <li>Ensure that f(x), f′(x) and f″(x) are continuous near the root.</li>
                     <li>Watch the denominators in the iteration formula; avoid values where they become 0 or extremely small.</li>
-                    <li>This algorithm is intended for multiple roots; if the root is actually simple, behaviour may resemble standard Newton and be slower than expected.</li>
+                    <li>This algorithm is intended for multiple roots; if the root is actually simple, the behaviour may be similar to standard Newton’s method and slower than expected.</li>
                   </ul>
 
                 {% endif %}
@@ -245,29 +226,6 @@
 
             <h3>Quick graph of f(x)</h3>
             <p style="font-size:1rem;">Uses the current f(x) from the form.</p>
-
-            <!-- Controles de rango -->
-            <div class="range-row">
-              <div>
-                <label for="root-x-min">x min</label>
-                <input id="root-x-min" type="number" step="any" value="-10">
-              </div>
-              <div>
-                <label for="root-x-max">x max</label>
-                <input id="root-x-max" type="number" step="any" value="10">
-              </div>
-            </div>
-
-            <div class="range-row">
-              <div>
-                <label for="root-y-min">y min</label>
-                <input id="root-y-min" type="number" step="any" placeholder="auto">
-              </div>
-              <div>
-                <label for="root-y-max">y max</label>
-                <input id="root-y-max" type="number" step="any" placeholder="auto">
-              </div>
-            </div>
 
             <div class="plotter-hints-root">
                 <strong>Function syntax:</strong>
@@ -339,13 +297,8 @@ document.addEventListener("DOMContentLoaded", () => {
     loadHistory();
 
     // ---- Graficador ----
-    const btn       = document.getElementById("root-plot-btn");
-    const graphDiv  = document.getElementById("root-graph");
-
-    const xMinInput = document.getElementById("root-x-min");
-    const xMaxInput = document.getElementById("root-x-max");
-    const yMinInput = document.getElementById("root-y-min");
-    const yMaxInput = document.getElementById("root-y-max");
+    const btn = document.getElementById("root-plot-btn");
+    const graphDiv = document.getElementById("root-graph");
 
     btn.addEventListener("click", () => {
 
@@ -360,18 +313,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Leer rango X
-        let xMin = parseFloat(xMinInput.value);
-        let xMax = parseFloat(xMaxInput.value);
-
-        if (isNaN(xMin)) xMin = -10;
-        if (isNaN(xMax)) xMax = 10;
-
-        if (xMin >= xMax) {
-            alert("x min must be strictly less than x max.");
-            return;
-        }
-
         let f;
         try {
             f = math.compile(expr);
@@ -380,10 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const nPoints = 400;
-        const step = (xMax - xMin) / nPoints;
-        const xs = math.range(xMin, xMax, step).toArray();
-
+        const xs = math.range(-10, 10, 0.03).toArray();
         const ys = xs.map(x => {
             try {
                 const y = f.evaluate({ x });
@@ -393,25 +331,16 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // Layout y rango en Y si el usuario lo define
-        const layout = {
-            margin: { t: 20, r: 20, l: 45, b: 40 },
-            xaxis: { title: "x", range: [xMin, xMax] },
-            yaxis: { title: "f(x)" }
-        };
-
-        let yMin = parseFloat(yMinInput.value);
-        let yMax = parseFloat(yMaxInput.value);
-        if (!isNaN(yMin) && !isNaN(yMax) && yMin < yMax) {
-            layout.yaxis.range = [yMin, yMax];
-        }
-
         Plotly.newPlot(graphDiv, [{
             x: xs,
             y: ys,
             mode: "lines",
             line: { color: "#1a73e8", width: 2 }
-        }], layout);
+        }], {
+            margin: { t: 20, r: 20, l: 45, b: 40 },
+            xaxis: { title: "x" },
+            yaxis: { title: "f(x)" }
+        });
     });
 
 });
