@@ -1,13 +1,14 @@
-# gaussian_elimination.py
+# methods/algorithms/gaussian_elimination.py
+import numpy as np
+
 
 def print_matrix(A, step):
-    print(f"\nStep {step}:")
+    print(f"\nEtapa {step}:")
     for row in A:
-        print("  ".join(f"{val:10.4f}" for val in row))
+        print("  ".join(f"{val: .6f}" for val in row))
 
 
 def determinant(M):
-    # Recursive cofactor expansion (OK for small n)
     m = len(M)
     if m == 1:
         return M[0][0]
@@ -19,27 +20,43 @@ def determinant(M):
 
 
 def simple_gaussian_elimination(A, n):
-    # Check determinant of the coefficient submatrix
+    """
+    Eliminación Gaussiana Simple (sin pivoteo)
+
+    Garantía:
+    - Si A[k][k] == 0 → Error fatal: no es posible continuar.
+    """
+    # Determinante para verificar unicidad de la solución
     coef = [row[:-1] for row in A]
-    det = determinant(coef)
-    if abs(det) < 1e-10:
-        print("The system does not have a unique solution (determinant ≈ 0).")
+    detA = determinant(coef)
+
+    if abs(detA) < 1e-12:
+        print("\n❌ ERROR: El sistema no tiene solución única (det(A) ≈ 0).\n")
         return None
 
-    print_matrix(A, step=0)
+    print("\nEliminación Gaussiana Simple\n")
+    print("Matriz aumentada inicial:\n")
+    print_matrix(A, 0)
 
-    # Forward elimination (no pivoting)
+    # Eliminación hacia adelante
     for k in range(n - 1):
-        if abs(A[k][k]) < 1e-12:
-            print(f"Zero pivot at position ({k},{k}); cannot divide.")
+        pivote = A[k][k]
+
+        if abs(pivote) < 1e-14:
+            print("\n❌ ERROR EN ELIMINACIÓN GAUSSIANA SIMPLE\n")
+            print(
+                f"Error [Etapa {k+1}]: Pivote nulo detectado en A[{k+1},{k+1}] = 0.\n"
+                "La factorización no puede continuar porque este método NO usa pivoteo.\n"
+                "Se recomienda usar pivoteo parcial o total para este sistema.\n"
+            )
             return None
 
         for i in range(k + 1, n):
-            factor = A[i][k] / A[k][k]
+            m = A[i][k] / pivote
             for j in range(k, n + 1):
-                A[i][j] -= factor * A[k][j]
+                A[i][j] -= m * A[k][j]
 
-        print_matrix(A, step=k + 1)
+        print_matrix(A, k + 1)
 
     return A
 
@@ -47,73 +64,30 @@ def simple_gaussian_elimination(A, n):
 def back_substitution(A, n):
     x = [0.0] * n
     for i in range(n - 1, -1, -1):
-        if abs(A[i][i]) < 1e-12:
-            print(f"Division by zero in back substitution at position ({i},{i}).")
+        if abs(A[i][i]) < 1e-14:
+            print("\n❌ ERROR: División por cero en sustitución regresiva.\n")
             return None
-        sum_ax = sum(A[i][j] * x[j] for j in range(i + 1, n))
-        x[i] = (A[i][n] - sum_ax) / A[i][i]
+        suma = sum(A[i][j] * x[j] for j in range(i + 1, n))
+        x[i] = (A[i][n] - suma) / A[i][i]
     return x
 
 
-# ------------------------------------------------------
-# 🔹 PUBLIC ENTRY POINT FOR DJANGO
-# ------------------------------------------------------
+# ---- Entrada pública (Django) ----
 def gaussian_elimination(A, b):
-    """
-    Public entry point used by Django.
-    Performs:
-        - Build augmented matrix
-        - Gaussian elimination (no pivoting)
-        - Back substitution
-        - Prints all steps and the solution vector
-    """
-
-    # Convert to Python list-of-lists
     A = [list(map(float, row)) for row in A]
     b = list(map(float, b))
-
     n = len(A)
 
-    # Build augmented matrix [A | b]
     Aug = [A[i] + [b[i]] for i in range(n)]
 
-    # Execute elimination
     A_tri = simple_gaussian_elimination(Aug, n)
     if A_tri is None:
         return
 
-    solutions = back_substitution(A_tri, n)
-    if solutions is None:
+    x = back_substitution(A_tri, n)
+    if x is None:
         return
 
-    print("\nSolutions of the system:")
-    for idx, val in enumerate(solutions, start=1):
-        print(f"x{idx} = {val:.6f}")
-
-
-# ------------------------------------------------------
-# Old test entry (ignored by Django)
-# ------------------------------------------------------
-if __name__ == "__main__":
-    Acoef = [
-        [2.0,  -1.0,  0.0,  3.0],
-        [1.0,   0.5,  3.0,  8.0],
-        [0.0,  13.0, -2.0, 11.0],
-        [14.0,  5.0, -2.0,  3.0],
-    ]
-    b = [1.0, 1.0, 1.0, 1.0]
-    n = len(Acoef)
-
-    A = [row[:] + [b_i] for row, b_i in zip(Acoef, b)]
-
-    A_tri = simple_gaussian_elimination(A, n)
-    if A_tri is None:
-        exit()
-
-    solutions = back_substitution(A_tri, n)
-    if solutions is None:
-        exit()
-
-    print("\nSolutions of the system:")
-    for idx, val in enumerate(solutions, start=1):
-        print(f"x{idx} = {val:.6f}")
+    print("\n🔹 Solución del sistema:")
+    for i, xi in enumerate(x, start=1):
+        print(f"x{i} = {xi:.6f}")

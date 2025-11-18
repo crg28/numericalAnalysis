@@ -1,123 +1,81 @@
-# partial_pivoting.py
-# === Gaussian Elimination with PARTIAL Pivoting ===
+# methods/algorithms/partial_pivoting.py
+# === Eliminación Gaussiana con Pivoteo Parcial ===
 
 def exchange_rows(A, r1, r2):
-    """Swap rows r1 <-> r2 in the augmented matrix."""
+    """Intercambia filas r1 <-> r2 en la matriz aumentada."""
     if r1 != r2:
         A[r1], A[r2] = A[r2], A[r1]
 
 
 def print_matrix(A, step):
-    print(f"\nStep {step}\n")
+    print(f"\nEtapa {step}:")
     for row in A:
-        print(" ".join(f"{v: .6f}" for v in row))
+        print("  ".join(f"{val: .6f}" for val in row))
 
 
-def back_substitution(A, n, tol=1e-12):
-    """Perform back substitution on an upper-triangular augmented matrix."""
+def back_substitution(U, n, tol=1e-14):
     x = [0.0] * n
     for i in range(n - 1, -1, -1):
-        piv = A[i][i]
+        piv = U[i][i]
         if abs(piv) < tol:
-            raise ZeroDivisionError(f"Pivot ~0 at position ({i},{i})")
-        s = 0.0
-        for j in range(i + 1, n):
-            s += A[i][j] * x[j]
-        x[i] = (A[i][n] - s) / piv
+            print("\n❌ ERROR EN SUSTITUCIÓN REGRESIVA\n")
+            print("Se encontró pivote cero tras la eliminación.\n")
+            return None
+        suma = sum(U[i][j] * x[j] for j in range(i + 1, n))
+        x[i] = (U[i][n] - suma) / piv
     return x
 
 
-def partial_pivoting(A, n, tol=1e-12):
-    """Gaussian elimination with partial pivoting on an augmented matrix [A|b]."""
-    print("Gaussian elimination with partial pivoting\n")
-    print("Results:")
-    print_matrix(A, step=0)
+def gaussian_partial_pivoting(A, n, tol=1e-14):
+    print("\nEliminación Gaussiana con Pivoteo Parcial\n")
+    print("Matriz aumentada inicial:")
+    print_matrix(A, 0)
 
     for k in range(n - 1):
-        # Find pivot row with max |A[i,k]| (for i ≥ k)
-        pivot_row = max(range(k, n), key=lambda i: abs(A[i][k]))
-        if abs(A[pivot_row][k]) < tol:
-            raise ValueError(f"Pivot ~0 in column {k}")
-        if pivot_row != k:
-            exchange_rows(A, k, pivot_row)
 
-        # Elimination
-        piv = A[k][k]
+        # Buscar mayor |A[i][k]| para i >= k
+        pivot_row = max(range(k, n), key=lambda i: abs(A[i][k]))
+
+        if abs(A[pivot_row][k]) < tol:
+            print("\n❌ MATRIZ SINGULAR\n")
+            print(
+                f"Error [Etapa {k+1}]: No se encontró pivote válido en la columna {k+1}.\n"
+                "El sistema NO tiene solución única.\n"
+            )
+            return None
+
+        # Intercambiar filas si es necesario
+        exchange_rows(A, k, pivot_row)
+
+        pivote = A[k][k]
+
+        # Eliminación
         for i in range(k + 1, n):
-            factor = A[i][k] / piv
+            factor = A[i][k] / pivote
             for j in range(k, n + 1):
                 A[i][j] -= factor * A[k][j]
 
-        print_matrix(A, step=k + 1)
+        print_matrix(A, k + 1)
+
     return A
 
 
-# ------------------------------------------------------
-# 🔹 PUBLIC ENTRY POINT FOR DJANGO
-# ------------------------------------------------------
+# === Entrada pública usada por Django ===
 def gaussian_elimination_partial_pivoting(A, b):
-    """
-    Public entry point used by Django for partial pivoting.
-
-    Parameters
-    ----------
-    A : array_like
-        Coefficient matrix.
-    b : array_like
-        Right-hand side vector.
-
-    Behavior:
-      - Builds the augmented matrix [A | b]
-      - Performs Gaussian elimination with partial pivoting
-      - Performs back substitution
-      - Prints all intermediate steps and the final solution.
-    """
-    # Convert to pure Python floats
-    A = [list(map(float, row)) for row in A]
+    A = [list(map(float, fila)) for fila in A]
     b = list(map(float, b))
-
     n = len(A)
-    # Build augmented matrix [A | b]
-    Aaug = [A[i] + [b[i]] for i in range(n)]
 
-    try:
-        U = partial_pivoting(Aaug, n)
-        x = back_substitution(U, n)
-        print("\nAfter applying back substitution\n")
-        print("Solution vector x:")
-        for val in x:
-            print(f"{val:.6f}")
-    except Exception as e:
-        print(f"\nError: {e}")
+    Aug = [A[i] + [b[i]] for i in range(n)]
 
+    U = gaussian_partial_pivoting(Aug, n)
+    if U is None:
+        return
 
-# ------------------------------------------------------
-# Legacy local test (ignored by Django)
-# ------------------------------------------------------
-def main():
-    # ---------- Fixed test system (no input) ----------
-    Acoef = [
-        [2.0,  -1.0,  0.0,  3.0],
-        [1.0,   0.5,  3.0,  8.0],
-        [0.0,  13.0, -2.0, 11.0],
-        [14.0,  5.0, -2.0,  3.0],
-    ]
-    b = [1.0, 1.0, 1.0, 1.0]
-    n = len(Acoef)
+    x = back_substitution(U, n)
+    if x is None:
+        return
 
-    # Build augmented matrix [A | b]
-    Aaug = [row[:] + [bi] for row, bi in zip(Acoef, b)]
-
-    try:
-        U = partial_pivoting(Aaug, n)
-        x = back_substitution(U, n)
-        print("\nAfter applying back substitution\n")
-        print("x:")
-        for val in x:
-            print(f"{val:.6f}")
-    except Exception as e:
-        print(f"Error: {e}")
-
-
-if __name__ == "__main__":
-    main()
+    print("\n🔹 Solución del sistema:")
+    for i, val in enumerate(x, start=1):
+        print(f"x{i} = {val:.6f}")

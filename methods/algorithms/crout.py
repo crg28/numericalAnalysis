@@ -32,30 +32,58 @@ def back_sub(U: np.ndarray, y: np.ndarray) -> np.ndarray:
         x[i] = (y[i] - s) / U[i, i]
     return x
 
-# ---------- Crout (diag(U) = 1), staged printing ----------
+# ---------- Crout (diag(U) = 1), con comprobación de l_kk ----------
 def crout_lu(A: np.ndarray):
     """
-    Crout LU factorization: A = L * U with diag(U) = 1.
-    We initialize L and U as identities so that untouched diagonal entries
-    remain 1.000000 at every stage (matching your reference tables).
+    Factorización Crout: A = L * U con diag(U) = 1.
+
+    Garantías:
+    - Calcula columnas de L y filas de U secuencialmente por etapa k.
+    - En cada etapa k:
+        1. Calcula l_kk.
+        2. Verifica que l_kk != 0 (dentro de una tolerancia).
+        3. Si l_kk es ~0, lanza ValueError con mensaje descriptivo.
     """
     A = np.array(A, dtype=np.complex128)
     n = A.shape[0]
-    L = np.eye(n, dtype=np.complex128)  # keep future diagonals as 1 until updated
-    U = np.eye(n, dtype=np.complex128)  # diag(U)=1 always
+    L = np.eye(n, dtype=np.complex128)  # L se irá llenando; diag(L) se actualiza
+    U = np.eye(n, dtype=np.complex128)  # diag(U) = 1
+
+    tol_piv = 1e-14  # tolerancia para considerar l_kk como cero
 
     for k in range(n):
-        # Column k of L (including the diagonal)
-        for i in range(k, n):
+        # ---------- 1. Columna k de L ----------
+        # Primero el elemento diagonal l_kk
+        L[k, k] = A[k, k] - sum(L[k, p] * U[p, k] for p in range(k))
+
+        # Comprobación de pivote cero en Crout
+        if abs(L[k, k]) < tol_piv:
+            etapa = k + 1  # etapas en 1..n
+            msg = (
+                f"Error [Etapa {etapa}]: División por cero. "
+                "El elemento diagonal l_kk calculado es nulo. "
+                "La factorización Crout no se puede completar."
+            )
+            raise ValueError(msg)
+
+        # Luego el resto de la columna k (i > k)
+        for i in range(k + 1, n):
             L[i, k] = A[i, k] - sum(L[i, p] * U[p, k] for p in range(k))
 
-        # Row k of U (to the right of the diagonal); U[k,k] already 1
+        # ---------- 2. Fila k de U (a la derecha de la diagonal) ----------
         for j in range(k + 1, n):
             U[k, j] = (A[k, j] - sum(L[k, p] * U[p, j] for p in range(k))) / L[k, k]
 
     return L, U
 
 def crout_demo(A: np.ndarray, b: np.ndarray) -> None:
+    """
+    Versión "demo" de Crout, que:
+    - Imprime etapas con L y U.
+    - Aplica sustitución hacia adelante y hacia atrás.
+    - Detecta l_kk = 0 en cada etapa y muestra mensaje de error
+      en lugar de seguir con la factorización.
+    """
     print("Crout\n")
     print("Results:\n")
 
@@ -64,41 +92,58 @@ def crout_demo(A: np.ndarray, b: np.ndarray) -> None:
         print(" " + "  ".join(f"{v: .6f}" for v in row))
     print()
 
-    # staged factorization for display
     Awork = np.array(A, dtype=np.complex128)
     n = Awork.shape[0]
     L = np.eye(n, dtype=np.complex128)
     U = np.eye(n, dtype=np.complex128)
 
+    tol_piv = 1e-14  # tolerancia para considerar l_kk como cero
+
+    # ---------- Factorización por etapas ----------
     for k in range(n):
-        for i in range(k, n):
+        # 1. Columna k de L
+        #    Primero el diagonal l_kk
+        L[k, k] = Awork[k, k] - sum(L[k, p] * U[p, k] for p in range(k))
+
+        #    Comprobación de pivote cero
+        if abs(L[k, k]) < tol_piv:
+            etapa = k + 1
+            print("\nERROR NUMÉRICO EN FACTORIZACIÓN CROUT\n")
+            print(
+                f"Error [Etapa {etapa}]: División por cero. "
+                "El elemento diagonal l_kk calculado es nulo. "
+                "La factorización Crout no se puede completar."
+            )
+            # No seguimos calculando ni resolviendo
+            print("\n____________________________________________________________________________")
+            return
+
+        #    Luego el resto de la columna (i > k)
+        for i in range(k + 1, n):
             L[i, k] = Awork[i, k] - sum(L[i, p] * U[p, k] for p in range(k))
+
+        # 2. Fila k de U (a la derecha del diagonal)
         for j in range(k + 1, n):
             U[k, j] = (Awork[k, j] - sum(L[k, p] * U[p, j] for p in range(k))) / L[k, k]
 
+        # 3. Imprimir etapa
         print(f"Stage {k+1}\n")
         print_matrix(L, "L")
         print()
         print_matrix(U, "U")
         print()
 
-    # Solve A x = b via LU
+    # ---------- Resolver A x = b via LU ----------
     y = forward_sub(L, b.astype(np.complex128))
     x = back_sub(U, y)
 
     print("\nAfter forward and backward substitution\n")
     print("x:")
     for xi in x:
-        print(f"{xi.real:.6f}")
+        # Para mostrar solo parte real si es prácticamente real
+        if abs(xi.imag) < 1e-12:
+            print(f"{xi.real:.6f}")
+        else:
+            print(f"{xi.real:.6f} + {xi.imag:.6f}i")
     print("\n____________________________________________________________________________")
 
-# ---------- Run with your provided data ----------
-if __name__ == "__main__":
-    A = np.array([
-        [4,  -1,   0,  3],
-        [1,  15.5, 3,  8],
-        [0,  -1.3, -4,  1.1],
-        [14,  5,   -2, 30]
-    ], dtype=float)
-    b = np.array([1, 1, 1, 1], dtype=float)
-    crout_demo(A, b)

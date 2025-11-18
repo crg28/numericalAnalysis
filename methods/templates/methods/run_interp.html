@@ -1,36 +1,73 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="max-w-7xl mx-auto py-8">
+{% block title %}{{ method_name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+  .interp-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 10px;
+  }
+
+  .interp-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(500px, 1.3fr);
+    gap: 2.5rem;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 1024px) {
+    .interp-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .interp-note-box {
+    margin-top: 1rem;
+    background: #fff7e6;
+    border: 1px solid #ffd28c;
+    border-radius: 10px;
+    padding: 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .interp-note-box h4 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="interp-page">
   <h1 class="text-4xl font-bold mb-6">{{ method_name }}</h1>
 
-  <div class="flex gap-6 items-start">
+  <div class="interp-layout">
 
-    <!-- LEFT SIDE -->
-    <div class="flex-1 min-w-[60%]">
-
+    <!-- IZQUIERDA: formulario, resultados, warnings -->
+    <section>
       <div class="bg-white shadow rounded-2xl p-6">
         <form method="post" id="method-form">
           {% csrf_token %}
           {% for field in form %}
-          <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-1">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}
-            <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
-            {% endif %}
-            {% if field.errors %}
-            <p class="text-sm text-red-600">{{ field.errors|striptags }}</p>
-            {% endif %}
-          </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-1">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
+              {% endif %}
+              {% if field.errors %}
+                <p class="text-sm text-red-600">{{ field.errors|striptags }}</p>
+              {% endif %}
+            </div>
           {% endfor %}
 
           <div class="flex gap-4">
             <button class="px-5 py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600">
               Run
             </button>
-
             <button type="button" id="plot-btn"
               class="px-5 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600">
               📈 Graph
@@ -40,39 +77,89 @@
       </div>
 
       {% if error %}
-      <div class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
-        {{ error }}
-      </div>
+        <div class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+          {{ error }}
+        </div>
       {% endif %}
 
       {% if poly %}
-      <div class="mt-6 bg-white shadow rounded-2xl p-6">
-        <h3 class="text-xl font-semibold mb-3">Result</h3>
-        <pre class="whitespace-pre-wrap text-sm">{{ poly }}</pre>
-      </div>
+        <div class="mt-6 bg-white shadow rounded-2xl p-6">
+          <h3 class="text-xl font-semibold mb-3">Result</h3>
+          <pre class="whitespace-pre-wrap text-sm">{{ poly }}</pre>
+        </div>
       {% endif %}
 
       {% if eval_result %}
-      <div class="mt-6 bg-white shadow rounded-2xl p-6">
-        <h3 class="text-xl font-semibold mb-3">Evaluation at X</h3>
-        <pre class="whitespace-pre-wrap text-sm">{{ eval_result }}</pre>
-      </div>
+        <div class="mt-6 bg-white shadow rounded-2xl p-6">
+          <h3 class="text-xl font-semibold mb-3">Evaluation at X</h3>
+          <pre class="whitespace-pre-wrap text-sm">{{ eval_result }}</pre>
+        </div>
       {% endif %}
 
-    </div>
+      <!-- ⚠️ CAJA DE WARNINGS BAJO LOS RESULTADOS -->
+      <div class="interp-note-box">
+        <h4>Notes &amp; warnings</h4>
 
-    <!-- RIGHT SIDE -->
-    <div id="graph-card" class="w-[360px] hidden bg-white shadow rounded-2xl p-6 sticky top-10">
+        <p><strong>General note:</strong> This tool does not automatically verify all mathematical assumptions. You should check them before running the method. If they are not satisfied, the algorithm will still run, but the results may be unreliable or completely wrong.</p>
+
+        {% with method_name|lower as name %}
+
+          {# Newton interpolation #}
+          {% if "newton" in name %}
+            <ul>
+              <li>All x-values must be distinct; divided differences use denominators (xᵢ − xⱼ) that must not be zero.</li>
+              <li>For numerical stability, keep the x-values ordered and avoid very large differences in scale between them.</li>
+              <li>The approximation is more reliable inside the data range than outside it; extrapolation can be very inaccurate.</li>
+              <li>Adding many points to a high-degree Newton polynomial may increase oscillations instead of improving accuracy.</li>
+            </ul>
+
+          {# Cubic spline #}
+          {% elif "cúbico" in name or "cubic" in name %}
+            <ul>
+              <li>All x-values must be distinct; repeated x with different y makes cubic spline interpolation ill-defined.</li>
+              <li>Keep the nodes ordered by x (strictly increasing).</li>
+              <li>Interpolation is only guaranteed inside [min(x), max(x)]; extrapolation outside that range may be very inaccurate.</li>
+              <li>Ensure that the x-values are reasonably spaced; extremely clustered points can make the spline system ill-conditioned.</li>
+              <li>The behaviour at the endpoints depends on the chosen boundary conditions; make sure they match your problem.</li>
+            </ul>
+
+          {# Linear spline #}
+          {% elif "lineal" in name or "linear spline" in name %}
+            <ul>
+              <li>All x-values must be distinct; repeated x with different y makes the spline definition inconsistent.</li>
+              <li>Keep the nodes ordered by x (strictly increasing).</li>
+              <li>Interpolation is only guaranteed inside [min(x), max(x)]; outside that range the piecewise lines may be very inaccurate.</li>
+              <li>Linear splines are only C⁰: the function is continuous but the slope is discontinuous at the nodes.</li>
+            </ul>
+
+          {# Fallback (Lagrange / genérico) #}
+          {% else %}
+            <ul>
+              <li>All x-values must be distinct; repeated x with different y makes interpolation ill-defined.</li>
+              <li>Keep the data ordered by x (strictly increasing).</li>
+              <li>Interpolation is only guaranteed to make sense inside [min(x), max(x)]; extrapolation may be very inaccurate.</li>
+              <li>Using many points does not always improve the approximation; high-degree polynomials may oscillate strongly.</li>
+            </ul>
+          {% endif %}
+
+        {% endwith %}
+      </div>
+
+    </section>
+
+    <!-- DERECHA: solo gráfica -->
+    <aside id="graph-card" style="width: 100%;" 
+       class="bg-white shadow rounded-2xl p-6 sticky top-10">
+
       <h3 class="text-xl font-semibold mb-3">Graph</h3>
 
-      <!-- 🔹 RANGO DE LA GRÁFICA -->
+      <!-- RANGO -->
       <div class="flex gap-2 mb-3 text-sm">
         <div class="flex flex-col">
           <label for="x-min" class="text-gray-600">x min</label>
           <input id="x-min" type="number" step="any" value="-10"
                  class="border rounded-lg px-2 py-1 text-sm">
         </div>
-
         <div class="flex flex-col">
           <label for="x-max" class="text-gray-600">x max</label>
           <input id="x-max" type="number" step="any" value="10"
@@ -83,54 +170,45 @@
       <div class="flex gap-2 mb-3 text-sm">
         <div class="flex flex-col">
           <label for="y-min" class="text-gray-600">y min</label>
-          <input id="y-min" type="number" step="any" value=""
-                 placeholder="auto"
+          <input id="y-min" type="number" step="any" placeholder="auto"
                  class="border rounded-lg px-2 py-1 text-sm">
         </div>
-
         <div class="flex flex-col">
           <label for="y-max" class="text-gray-600">y max</label>
-          <input id="y-max" type="number" step="any" value=""
-                 placeholder="auto"
+          <input id="y-max" type="number" step="any" placeholder="auto"
                  class="border rounded-lg px-2 py-1 text-sm">
         </div>
       </div>
-      <!-- 🔹 FIN RANGO -->
 
-      <div id="plot-area" class="w-full h-[260px]"></div>
-    </div>
-
+      <div id="plot-area" class="w-full h-[260px] mb-1"></div>
+    </aside>
   </div>
 
   {% if plot_data %}
     <script id="plot-data" type="application/json">
-        {{ plot_data|safe }}
+      {{ plot_data|safe }}
     </script>
   {% endif %}
-
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
   const plotBtn   = document.getElementById("plot-btn");
   const plotArea  = document.getElementById("plot-area");
-  const graphCard = document.getElementById("graph-card");
-
   const xMinInput = document.getElementById("x-min");
   const xMaxInput = document.getElementById("x-max");
   const yMinInput = document.getElementById("y-min");
   const yMaxInput = document.getElementById("y-max");
 
-  plotBtn.addEventListener("click", () => {
+  if (!plotBtn) return;
 
+  plotBtn.addEventListener("click", () => {
     const raw = document.getElementById("plot-data");
     if (!raw) {
-      alert("No hay datos de spline para graficar.");
+      alert("There is no interpolation data to plot yet. Run the method first.");
       return;
     }
 
@@ -138,57 +216,56 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       data = JSON.parse(raw.innerHTML.trim());
     } catch (e) {
-      console.error("JSON inválido:", raw.innerHTML);
-      alert("Error: los datos del spline son inválidos.");
+      console.error("Invalid JSON for plot-data:", e);
+      alert("Error: interpolation data is invalid.");
       return;
     }
 
     const traces = [];
 
-    data.segments.forEach(seg => {
-      traces.push({
-        x: seg.xs,
-        y: seg.ys,
-        mode: "lines",
-        line: { width: 3 },
-        name: "Spline",
-        showlegend: false,
+    // Segmentos (para splines, etc.)
+    if (data.segments) {
+      data.segments.forEach(seg => {
+        traces.push({
+          x: seg.xs,
+          y: seg.ys,
+          mode: "lines",
+          line: { width: 3 },
+          showlegend: false,
+          name: "Interpolant"
+        });
       });
-    });
+    }
 
-    const px = data.points.map(p => p.x);
-    const py = data.points.map(p => p.y);
+    // Puntos originales
+    if (data.points) {
+      const px = data.points.map(p => p.x);
+      const py = data.points.map(p => p.y);
 
-    traces.push({
-      x: px,
-      y: py,
-      mode: "markers",
-      marker: { size: 7, color: "red" },
-      name: "Points",
-    });
+      traces.push({
+        x: px,
+        y: py,
+        mode: "markers",
+        marker: { size: 7 },
+        name: "Data points"
+      });
 
-    graphCard.classList.remove("hidden");
-
-    const minX = Math.min(...px);
-    const maxX = Math.max(...px);
-    const minY = Math.min(...py);
-    const maxY = Math.max(...py);
-
-    if (!xMinInput.value) xMinInput.value = minX;
-    if (!xMaxInput.value) xMaxInput.value = maxX;
-    if (!yMinInput.value) yMinInput.value = minY;
-    if (!yMaxInput.value) yMaxInput.value = maxY;
-
-    let xMin = parseFloat(xMinInput.value);
-    let xMax = parseFloat(xMaxInput.value);
-    let yMin = parseFloat(yMinInput.value);
-    let yMax = parseFloat(yMaxInput.value);
+      if (!xMinInput.value) xMinInput.value = Math.min(...px);
+      if (!xMaxInput.value) xMaxInput.value = Math.max(...px);
+      if (!yMinInput.value) yMinInput.value = Math.min(...py);
+      if (!yMaxInput.value) yMaxInput.value = Math.max(...py);
+    }
 
     const layout = {
       margin: { t: 10, r: 10, l: 40, b: 40 },
       xaxis: { title: "x" },
       yaxis: { title: "y" }
     };
+
+    const xMin = parseFloat(xMinInput.value);
+    const xMax = parseFloat(xMaxInput.value);
+    const yMin = parseFloat(yMinInput.value);
+    const yMax = parseFloat(yMaxInput.value);
 
     if (!isNaN(xMin) && !isNaN(xMax) && xMin < xMax) {
       layout.xaxis.range = [xMin, xMax];
@@ -199,7 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     Plotly.newPlot(plotArea, traces, layout);
   });
-
 });
 </script>
 {% endblock %}
