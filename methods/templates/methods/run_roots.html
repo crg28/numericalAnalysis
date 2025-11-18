@@ -156,7 +156,15 @@
             <div class="root-info-box">
               <h4>Notes & warnings</h4>
 
-              <p><strong>General note:</strong> Always avoid division by 0 when evaluating formulas.</p>
+              <p>
+                <strong>General note:</strong>
+                This tool does not automatically check all mathematical assumptions
+                (continuity, sign changes, differentiability, etc.). You should verify
+                the hypotheses of the chosen method before running it. If they are not
+                satisfied, the algorithm will still run, but the results may be
+                unreliable or completely wrong. Always avoid division by 0 when
+                evaluating formulas.
+              </p>
 
               {# usamos slug en minúsculas para ser más tolerantes a nombres #}
               {% with method.slug|lower as slug %}
@@ -166,20 +174,21 @@
                   <ul>
                     <li>Make sure the function is continuous along the tested interval.</li>
                     <li>Check that f(x) changes sign somewhere in the interval; otherwise a root is not guaranteed.</li>
+                    <li>Choose a step size small enough so that you do not skip narrow sign changes.</li>
                   </ul>
 
                 {# 2. Bisección #}
                 {% elif method.kind == 'bisection' or 'bisection' in slug %}
                   <ul>
                     <li>Ensure that f(x) is continuous on the interval [a, b].</li>
-                    <li>You should have f(a)·f(b) &lt; 0; if not, you cannot guarantee a root in [a, b].</li>
+                    <li>For a guaranteed root, you must have f(a)·f(b) &lt; 0; otherwise the method will still run but a root in [a, b] is not guaranteed.</li>
                   </ul>
 
                 {# 3. Regla falsa (false position) #}
                 {% elif method.kind == 'false_position' or 'false' in slug %}
                   <ul>
                     <li>The function should be continuous over the working interval.</li>
-                    <li>Ideally f(a) and f(b) have opposite signs; otherwise the existence of a root is uncertain.</li>
+                    <li>For the theoretical guarantees of the method, you should have f(a)·f(b) &lt; 0; if not, the algorithm may still run but the existence of a root in [a, b] is uncertain.</li>
                   </ul>
 
                 {# 4. Newton #}
@@ -191,7 +200,7 @@
                     <li>Ensure that f(x) is differentiable on the interval where you apply the method.</li>
                   </ul>
 
-                {# 5. Punto fijo (fixed point) — si algún método de raíces usa este template #}
+                {# 5. Punto fijo (fixed point) #}
                 {% elif method.kind == 'fixed_point' or 'fixed' in slug %}
                   <ul>
                     <li>Work on an interval [a, b] where g(x) is continuous.</li>
