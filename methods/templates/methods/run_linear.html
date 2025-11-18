@@ -3,30 +3,186 @@
 
 {% block title %}{{ method.name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+  .lin-page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-top: 10px;
+  }
+
+  .lin-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) 300px;
+      gap: 3rem;
+      align-items: flex-start;
+      margin-top: 0.75rem;
+      margin-bottom: 1rem;
+  }
+
+  .lin-left {
+      min-width: 0;
+  }
+
+  .lin-info-box {
+      background: #fff7e6;
+      border: 1px solid #ffd28c;
+      border-radius: 10px;
+      padding: 1rem;
+      font-size: 0.9rem;
+  }
+
+  .lin-info-box h4 {
+      margin-top: 0;
+      margin-bottom: 0.4rem;
+      font-size: 1rem;
+      font-weight: bold;
+  }
+
+  @media (max-width: 900px) {
+      .lin-layout {
+          grid-template-columns: 1fr;
+      }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>{{ method.name }}</h1>
+<div class="lin-page">
+  <h1>{{ method.name }}</h1>
 
-{% if help_items %}
-  <h3>About this method</h3>
-  <ul>
-    {% for tip in help_items %}<li>{{ tip }}</li>{% endfor %}
-  </ul>
-{% endif %}
+  <div class="lin-layout">
 
-<h3>Input</h3>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">{% trans "Solve" %}</button>
-</form>
+    <!-- IZQUIERDA: input + resultados -->
+    <div class="lin-left">
 
-{% if error %}
-  <h3>Error</h3>
-  <pre>{{ error }}</pre>
-{% endif %}
+      {% if help_items %}
+        <h3>About this method</h3>
+        <ul>
+          {% for tip in help_items %}
+            <li>{{ tip }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
 
-{% if console %}
-  <h3>Console output</h3>
-  <pre>{{ console }}</pre>
-{% endif %}
+      <h3>Input</h3>
+      <form method="post" style="margin-bottom:1rem;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% trans "Solve" %}</button>
+      </form>
+
+      {% if error %}
+        <h3>Error</h3>
+        <pre>{{ error }}</pre>
+      {% endif %}
+
+      {% if console %}
+        <h3>Console output</h3>
+        <pre>{{ console }}</pre>
+      {% endif %}
+
+    </div>
+
+    <!-- DERECHA: cajita de warnings -->
+    <aside class="lin-info-box">
+      <h4>Notes & warnings</h4>
+
+      <p>
+        <strong>General note:</strong>
+        This tool does not automatically check all matrix assumptions
+        (invertibility, symmetry, dominance, conditioning, etc.).
+        You should verify the hypotheses of the chosen method before running it.
+        If they are not satisfied, the algorithm will still run, but the results
+        may be unreliable or completely wrong.
+      </p>
+
+      {% with method.slug|lower as slug %}
+
+        {# Cholesky #}
+        {% if 'cholesky' in slug %}
+          <ul>
+            <li>Cholesky is intended only for symmetric positive definite (SPD) matrices.</li>
+            <li>Check that A = Aᵀ and that xᵀAx &gt; 0 for any non-zero vector x.</li>
+            <li>If the matrix is not SPD, prefer a generic LU factorization method instead.</li>
+          </ul>
+
+        {# Crout #}
+        {% elif 'crout' in slug %}
+          <ul>
+            <li>Crout’s factorization assumes that the chosen pivots are non-zero.</li>
+            <li>If a pivot is zero or extremely small, the method becomes unstable; use a pivoting LU method instead.</li>
+            <li>Ill-conditioned matrices can amplify round-off errors in the L and U factors.</li>
+          </ul>
+
+        {# Doolittle / Simple LU #}
+        {% elif 'doolittle' in slug or 'simple_lu' in slug or 'simple-lu' in slug %}
+          <ul>
+            <li>Doolittle / simple LU assumes non-zero diagonal pivots and uses no pivoting.</li>
+            <li>This method is sensitive to zero or very small pivots; for safety, use LU with partial or total pivoting.</li>
+            <li>Large growth in the entries of U is a warning sign of numerical instability.</li>
+          </ul>
+
+        {# Gaussian elimination (no pivoting) #}
+        {% elif 'gaussian' in slug %}
+          <ul>
+            <li>Plain Gaussian elimination without pivoting is only safe for well-conditioned matrices with reasonably large diagonal entries.</li>
+            <li>If a pivot is zero or nearly zero, the elimination step is unreliable; use a pivoting strategy instead.</li>
+            <li>Nearly dependent equations can produce very large numerical errors in the computed solution.</li>
+          </ul>
+
+        {# Partial pivot #}
+        {% elif 'partial' in slug and 'pivot' in slug %}
+          <ul>
+            <li>Partial pivoting chooses the largest entry in each column as pivot to reduce round-off errors.</li>
+            <li>Although more stable than plain elimination, it can still fail on extremely ill-conditioned systems.</li>
+            <li>Check that the matrix is square and that no row is entirely zero; otherwise the system may be singular.</li>
+          </ul>
+
+        {# Total pivot #}
+        {% elif 'total' in slug and 'pivot' in slug %}
+          <ul>
+            <li>Total pivoting is more robust but also more expensive than partial pivoting.</li>
+            <li>The method may permute both rows and columns; interpret the solution using the final column permutation.</li>
+            <li>If no sufficiently large pivot can be found, the matrix is effectively singular and the solution is unreliable.</li>
+          </ul>
+
+        {# Pivoting LU #}
+        {% elif 'pivoting-lu' in slug or 'pivoting_lu' in slug %}
+          <ul>
+            <li>LU with pivoting assumes the matrix is nonsingular but may require row permutations to obtain stable pivots.</li>
+            <li>Keep track of the permutation matrix or pivot vector when interpreting the factors and the solution.</li>
+            <li>Even with pivoting, very ill-conditioned matrices can lead to large relative errors.</li>
+          </ul>
+
+        {# Jacobi #}
+        {% elif 'jacobi' in slug %}
+          <ul>
+            <li>Jacobi converges reliably when A is strictly diagonally dominant or symmetric positive definite.</li>
+            <li>If the spectral radius of the iteration matrix is ≥ 1, the method will diverge or stagnate.</li>
+            <li>A poor initial guess or an excessively small tolerance can require many iterations.</li>
+          </ul>
+
+        {# Gauss–Seidel #}
+        {% elif 'gauss-seidel' in slug or 'gauss_seidel' in slug %}
+          <ul>
+            <li>Gauss–Seidel works best for strictly diagonally dominant or SPD matrices.</li>
+            <li>If the iteration diverges, reconsider the ordering of the equations or switch to another method.</li>
+            <li>Rescaling the equations can improve numerical behaviour on badly scaled systems.</li>
+          </ul>
+
+        {# SOR #}
+        {% elif 'sor' in slug %}
+          <ul>
+            <li>The relaxation factor ω must satisfy 0 &lt; ω &lt; 2; outside this range the method is not well defined.</li>
+            <li>Choosing ω too large may cause divergence even when Gauss–Seidel converges.</li>
+            <li>SOR is most effective for diagonally dominant or SPD matrices; otherwise convergence is not guaranteed.</li>
+          </ul>
+
+        {% endif %}
+      {% endwith %}
+    </aside>
+
+  </div>
+</div>
 {% endblock %}
